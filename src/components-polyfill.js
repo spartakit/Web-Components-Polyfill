@@ -23,7 +23,7 @@ var inject = function(inScript, inContext, inName) {
 
 // global necessary for script injection
 window.componentScript = function(inName, inFunc) {
-	scope.factory.exec(inName, inFunc);
+	scope.declarationRegistry.exec(inName, inFunc);
 };
 
 
@@ -70,8 +70,9 @@ scope.Declaration.prototype = {
   },
 
   evalScript: function(script) {
+	inject(script, this.element, this.element.name);
     //FIXME: Add support for external js loading.
-    Function(script.textContent).call(this.element);
+    //Function(script.textContent).call(this.element);
   },
 
   addTemplate: function(template) {
@@ -125,6 +126,31 @@ scope.Declaration.prototype = {
   }
 };
 
+// declaration registry singleton
+scope.declarationRegistry = {
+	registry: {},
+	register: function(name, declaration) {
+		this.registry[name] = declaration;
+	},
+	ancestors: function(inDeclaration) {
+		var results = [];
+		var d = inDeclaration;
+		while (d) {
+			d = this.registry[d.archetype.extends];
+			if (d) {
+				results.unshift(d);
+			}
+		}
+		return results;
+	},
+	// invoke inFunc in the context of inName's archetype
+	exec: function(inName, inFunc) {
+		var declaration = this.registry[inName];
+		if (declaration) {
+			inFunc.call(declaration.element);
+		}
+	}
+};
 
 scope.DeclarationFactory = function() {
   // Hard-bind the following methods to "this":
@@ -149,7 +175,11 @@ scope.DeclarationFactory.prototype = {
       console.error('extends attribute is required.');
       return;
     }
-    var constructorName = element.getAttribute('constructor');
+	//
+	// register this declaration so we can find it by name
+	scope.declarationRegistry.register(name, this);
+    //
+	var constructorName = element.getAttribute('constructor');
     var declaration = new scope.Declaration(name, tagName, constructorName);
     if (constructorName) {
       window[constructorName] = declaration.element.generatedConstructor;

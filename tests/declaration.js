@@ -18,11 +18,16 @@ test('.generateConstructor must create a swizzled-prototype, HTMLElement-derived
 
 
 test('.evalScript must attempt to evaluate script, wrapped in a shim', function() {
-	var context = {element: {ok: false}};
-    polyfill.Declaration.prototype.evalScript.call(context, {
-        textContent: 'this.ok = true;'
-    });
-    ok(context.element.ok);
+	var mockDeclaration = {
+		element: {
+			name: "test",
+			evalOk: false
+		}
+	};
+	// FIXME: persists across test boundary
+	polyfill.declarationRegistry.register("test", mockDeclaration);
+    polyfill.Declaration.prototype.evalScript.call(mockDeclaration, 'this.evalOk = true;');
+    ok(mockDeclaration.element.evalOk);
 });
 
 test('.addTemplate must set the this.template value', function() {
