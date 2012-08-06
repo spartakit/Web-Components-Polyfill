@@ -281,58 +281,10 @@ scope.Loader.prototype = {
 	}
 };
 
-scope.loader = {
-	loadDocuments: function(inLinks) {
-		var docs = [];
-		forEach(inLinks, function(link) {
-			var doc = this.loadDocument(link.getAttribute("href"));
-			if (doc) {
-				docs.push(doc);
-			}
-		}, this);
-		return docs;
-	},
-	loadDocument: function(inUrl) {
-		if (!inUrl) {
-			// TODO: error report here (?)
-		}
-		else {
-			var html = this.loadUrl(inUrl);
-			// TODO: error report here (?)
-			if (html) {
-				return this.makeDocument(html);
-			}
-		}
-	},
-	ok: function(inRequest) {
-		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
-	},
-	loadUrl: function(url) {
-		var request = new XMLHttpRequest();
-		request.open('GET', url, false);
-		request.send();
-		return this.ok(request) ? request.response : '';
-	},
-	makeDocument: function(inHtml) {
-		var doc = document.implementation.createHTMLDocument();
-		doc.body.innerHTML = inHtml;
-		return doc;
-	}
-};
-
-scope.parser = {
-	parseDocument: function(inDocument) {
-		var links = inDocument.querySelectorAll('link[rel=components]');
-		console.log(links);
-		var docs = scope.loader.loadDocuments(links);
-		console.log(docs);
-	}
-};
-
 scope.run = function() {
 	var ready = function() {
 		loader.start();
-		scope.parser.parseDocument(document);
+		//scope.parser.parseDocument(document);
 	};
 	document.addEventListener('DOMContentLoaded', ready);
 	//
