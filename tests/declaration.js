@@ -1,25 +1,5 @@
 module('Declaration');
 
-// the generatedConstructor.prototype is intended to be stomped by
-// component code, so it is meaningless for it to have a non-trivial value
-/*
-test('.generateConstructor must create a swizzled-prototype, HTMLElement-derived object', function() {
-    var mockElement = function() {}
-    var count = 0;
-    var result = new (polyfill.Declaration.prototype.generateConstructor.call({
-        archetype: {
-            extendsTagName: 'div',
-			created: function() {
-				count = 0;
-			}
-        },
-        elementPrototype: mockElement.prototype
-    }));
-    //equal(result.__proto__.constructor, mockElement);
-    //equal(result.__proto__.__proto__.constructor, HTMLDivElement);
-});
-*/
-
 test('.evalScript must attempt to evaluate script, wrapped in a shim', function() {
 	var mockDeclaration = {
 		archetype: {
@@ -67,12 +47,6 @@ test('.createShadowRoot must create a WebKitShadowRoot instance', function() {
 		}
 	}, host);
 	equal(result.__proto__.constructor, WebKitShadowRoot);
-// FIXME: why test all these keys? They don't seem to match the current ShadowRoot instance properties.
-/*
-    deepEqual(Object.keys(result), [ 'nextSibling', 'childNodes', 'nodeType', 'host', 'prefix', 'parentElement', 'nodeName',
-        'activeElement', 'textContent', 'namespaceURI', 'firstChild', 'innerHTML', 'localName', 'lastChild', 'baseURI',
-        'previousSibling', 'ownerDocument', 'nodeValue', 'parentNode', 'attributes' ]);
-	*/
 });
 
 test('.createShadowRoot must clone template child nodes into the newly created WebKitShadowRoot instance', function() {
@@ -98,11 +72,11 @@ test('.prototypeFromTagName must return correct HTML element prototype', functio
 
 test('constructor must correctly initialize instance members', function() {
 	var declaration = new polyfill.Declaration({
-			name: "scones",
-			tagName: "div",
-			template: "foo",
-			resetStyleInheritance: true,
-			applyAuthorStyles: true
+		name: "scones",
+		tagName: "div",
+		template: "foo",
+		resetStyleInheritance: true,
+		applyAuthorStyles: true
 	});
 	equal(declaration.archetype.name, 'scones');
 	equal(declaration.archetype.extendsTagName, 'div');
