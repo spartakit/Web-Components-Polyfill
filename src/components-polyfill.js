@@ -93,13 +93,12 @@ scope.Declaration = function(inProps) {
 
 scope.Declaration.prototype = {
 	generateConstructor: function() {
-		var tagName = this.archetype.extendsTagName;
-		var created = this.archetype.created;
+		var archetype = this.archetype;
 		var extended = function() {
-			var element = document.createElement(tagName);
+			var element = document.createElement(archetype.extendsTagName);
 			extended.prototype.__proto__ = element.__proto__;
 			element.__proto__ = extended.prototype;
-			created.call(element);
+			archetype.created.call(element);
 		};
 		return extended;
 	},
@@ -221,11 +220,26 @@ scope.DeclarationFactory.prototype = {
 		if (ctor) {
 			window[ctor] = declaration.archetype.generatedConstructor;
 		}
+		// load component stylesheets
+		//this.sheets(element, declaration);
+		// evaluate components scripts
+		this.scripts(element, declaration);
 		// evaluate component scripts
-		[].forEach.call(element.querySelectorAll('script'), declaration.evalScript,
-			declaration);
+		//[].forEach.call(element.querySelectorAll('script'), declaration.evalScript,
+		//	declaration);
 		// notify observer
 		this.oncreate && this.oncreate(declaration);
+	},
+	scripts: function(element, declaration) {
+		// accumulate all script content from the element declaration
+		var script = [];
+		forEach($$(element, "script"), function(s) {
+			script.push(s.textContent);
+		});
+		// if there is any code, inject it
+		if (script.length) {
+			inject(script.join(';\n'), declaration.archetype, declaration.archetype.name);
+		}
 	}
 };
 
