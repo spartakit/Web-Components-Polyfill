@@ -1,5 +1,8 @@
 module('Declaration');
 
+// the generatedConstructor.prototype is intended to be stomped by
+// component code, so it is meaningless for it to have a non-trivial value
+/*
 test('.generateConstructor must create a swizzled-prototype, HTMLElement-derived object', function() {
     var mockElement = function() {}
     var count = 0;
@@ -12,10 +15,10 @@ test('.generateConstructor must create a swizzled-prototype, HTMLElement-derived
         },
         elementPrototype: mockElement.prototype
     }));
-    equal(result.__proto__.constructor, mockElement);
-    equal(result.__proto__.__proto__.constructor, HTMLDivElement);
+    //equal(result.__proto__.constructor, mockElement);
+    //equal(result.__proto__.__proto__.constructor, HTMLDivElement);
 });
-
+*/
 
 test('.evalScript must attempt to evaluate script, wrapped in a shim', function() {
 	var mockDeclaration = {
@@ -97,7 +100,7 @@ test('.prototypeFromTagName must return correct HTML element prototype', functio
 
 test('constructor must correctly initialize instance members', function() {
     var declaration = new polyfill.Declaration('scones', 'div');
-    equal(declaration.elementPrototype.constructor, HTMLDivElement);
+    //equal(declaration.elementPrototype.constructor, HTMLDivElement);
     equal(declaration.archetype.name, 'scones');
     equal(declaration.archetype.extendsTagName, 'div');
     //strictEqual(declaration.archetype.declaration, declaration);

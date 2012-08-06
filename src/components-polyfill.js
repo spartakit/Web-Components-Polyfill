@@ -47,7 +47,6 @@ scope.HTMLElementElement.prototype = {
 
 
 scope.Declaration = function(name, tagName) {
-  this.elementPrototype = Object.create(this.prototypeFromTagName(tagName));
   this.archetype = new scope.HTMLElementElement(name, tagName, this);
   this.archetype.generatedConstructor = this.generateConstructor();
   // Hard-bind the following methods to "this":
@@ -65,7 +64,6 @@ scope.Declaration.prototype = {
       element.__proto__ = extended.prototype;
       created.call(element);
     };
-    extended.prototype = this.elementPrototype;
     return extended;
   },
 
