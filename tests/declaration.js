@@ -24,10 +24,12 @@ test('.evalScript must attempt to evaluate script, wrapped in a shim', function(
 			evalOk: false
 		}
 	};
-	// FIXME: persists across test boundary
+	// FIXME: registry is shared
 	polyfill.declarationRegistry.register("test", mockDeclaration);
     polyfill.Declaration.prototype.evalScript.call(mockDeclaration, 'this.evalOk = true;');
     ok(mockDeclaration.element.evalOk);
+	// FIXME: clean up registry
+	polyfill.declarationRegistry.registry = {};
 });
 
 test('.addTemplate must set the this.template value', function() {
