@@ -7,6 +7,25 @@ if (!window.WebKitShadowRoot) {
   return;
 }
 
+// debuggable script injection
+// 
+// this technique allows the component scripts to be
+// viewable and debuggable in inspector scripts
+// tab (although they are all named "(program)").
+
+// invoke inScript in inContext scope
+var inject = function(inScript, inContext, inName) {
+	// inject a (debuggable!) script tag
+	var	tag = document.createElement("script");
+	tag.textContent = "componentScript('" + inName + "', function(){" + inScript + "});";
+	document.body.appendChild(tag);
+};
+
+// global necessary for script injection
+window.componentScript = function(inName, inFunc) {
+	scope.factory.exec(inName, inFunc);
+};
+
 
 scope.HTMLElementElement = function(name, tagName, declaration) {
   this.name = name;
