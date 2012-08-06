@@ -26,23 +26,16 @@ window.componentScript = function(inName, inFunc) {
 	scope.declarationRegistry.exec(inName, inFunc);
 };
 
+var lifecycleMethods = ["created", "inserted", "removed", "attributeChanged"];
 
 scope.HTMLElementElement = function(name, tagName, declaration) {
-  this.name = name;
-  this.extendsTagName = tagName;
-  this.lifecycle = this.lifecycle.bind(declaration);
+	this.name = name;
+	this.extendsTagName = tagName;
+	this.lifecycle = declaration.installLifecycle.bind(declaration);
 };
 
 scope.HTMLElementElement.prototype = {
-  __proto__: HTMLElement.prototype,
-  lifecycle: function(dict) {
-    this.created = dict.created || nil;
-    this.inserted = dict.inserted || nil;
-    this.attributeChanged = dict.attributeChanged || nil;
-
-    // TODO: Implement remove lifecycle methods.
-    //this.removed = dict.removed || nil;
-  }
+	__proto__: HTMLElement.prototype
 };
 
 // optional properties for Declaration constructor
@@ -72,6 +65,12 @@ scope.Declaration.prototype = {
 			created.call(element);
 		};
 		return extended;
+	},
+	installLifecycle: function(inMap) {
+		lifecycleMethods.forEach(function(m) {
+			this[m] = inMap[m] || nop;
+		}, this);
+		// TODO: Implement remove lifecycle methods.
 	},
 	evalScript: function(script) {
 		inject(script, this.archetype, this.archetype.name);
