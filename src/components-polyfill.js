@@ -45,83 +45,82 @@ scope.HTMLElementElement.prototype = {
   }
 };
 
+// optional properties for Declaration constructor
+var declarationProperties = ["template", "resetStyleInheritance", "applyAuthorStyles"];
 
-scope.Declaration = function(name, tagName) {
-  this.archetype = new scope.HTMLElementElement(name, tagName, this);
-  this.archetype.generatedConstructor = this.generateConstructor();
-  // Hard-bind the following methods to "this":
-  this.morph = this.morph.bind(this);
+scope.Declaration = function(inProps) {
+	// initialize properties
+	declarationProperties.forEach(function(m) {
+		this[m] = inProps[m];
+	}, this);
+	// create a new Element element
+	this.archetype = new scope.HTMLElementElement(inProps.name, inProps.tagName, this);
+	// generate a custom element constructor
+	this.archetype.generatedConstructor = this.generateConstructor();
+	// Hard-bind the following methods to "this":
+	this.morph = this.morph.bind(this);
 };
 
 scope.Declaration.prototype = {
+	generateConstructor: function() {
+		var tagName = this.archetype.extendsTagName;
+		var created = this.archetype.created;
+		var extended = function() {
+			var element = document.createElement(tagName);
+			extended.prototype.__proto__ = element.__proto__;
+			element.__proto__ = extended.prototype;
+			created.call(element);
+		};
+		return extended;
+	},
+	evalScript: function(script) {
+		inject(script, this.archetype, this.archetype.name);
+	//FIXME: Add support for external js loading.
+	//Function(script.textContent).call(this.archetype);
+	},
+	morph: function(element) {
+		// FIXME: We shouldn't be updating __proto__ like this on each morph.
+		this.archetype.generatedConstructor.prototype.__proto__ = document.createElement(this.archetype.extendsTagName);
+		element.__proto__ = this.archetype.generatedConstructor.prototype;
+		var shadowRoot = this.createShadowRoot(element);
 
-  generateConstructor: function() {
-    var tagName = this.archetype.extendsTagName;
-    var created = this.archetype.created;
-    var extended = function() {
-      var element = document.createElement(tagName);
-      extended.prototype.__proto__ = element.__proto__;
-      element.__proto__ = extended.prototype;
-      created.call(element);
-    };
-    return extended;
-  },
+		// Fire created event.
+		this.created && this.created.call(element, shadowRoot);
+		this.inserted && this.inserted.call(element, shadowRoot);
 
-  evalScript: function(script) {
-	inject(script, this.archetype, this.archetype.name);
-    //FIXME: Add support for external js loading.
-    //Function(script.textContent).call(this.archetype);
-  },
+		// Setup mutation observer for attribute changes.
+		if (this.attributeChanged) {
+			var observer = new WebKitMutationObserver(function(mutations) {
+				mutations.forEach(function(m) {
+					this.attributeChanged(m.attributeName, m.oldValue,
+						m.target.getAttribute(m.attributeName));
+				}.bind(this));
+			}.bind(this));
 
-  addTemplate: function(template) {
-    this.template = template;
-  },
+			// TOOD: spec isn't clear if it's changes to the custom attribute
+			// or any attribute in the subtree.
+			observer.observe(shadowRoot.host, {
+				attributes: true,
+				attributeOldValue: true
+			});
+		}
+	},
+	createShadowRoot: function(element) {
+		if (!this.template) {
+			return undefined;
+		}
 
-  morph: function(element) {
-    // FIXME: We shouldn't be updating __proto__ like this on each morph.
-    this.archetype.generatedConstructor.prototype.__proto__ = document.createElement(this.archetype.extendsTagName);
-    element.__proto__ = this.archetype.generatedConstructor.prototype;
-    var shadowRoot = this.createShadowRoot(element);
+		var shadowRoot = new WebKitShadowRoot(element);
+		shadowRoot.host = element;
+		[].forEach.call(this.template.childNodes, function(node) {
+			shadowRoot.appendChild(node.cloneNode(true));
+		});
 
-    // Fire created event.
-    this.created && this.created.call(element, shadowRoot);
-    this.inserted && this.inserted.call(element, shadowRoot);
-
-    // Setup mutation observer for attribute changes.
-    if (this.attributeChanged) {
-      var observer = new WebKitMutationObserver(function(mutations) {
-        mutations.forEach(function(m) {
-          this.attributeChanged(m.attributeName, m.oldValue,
-                                m.target.getAttribute(m.attributeName));
-        }.bind(this));
-      }.bind(this));
-
-      // TOOD: spec isn't clear if it's changes to the custom attribute
-      // or any attribute in the subtree.
-      observer.observe(shadowRoot.host, {
-        attributes: true,
-        attributeOldValue: true
-      });
-    }
-  },
-
-  createShadowRoot: function(element) {
-    if (!this.template) {
-      return undefined;
-    }
-
-    var shadowRoot = new WebKitShadowRoot(element);
-    shadowRoot.host = element;
-    [].forEach.call(this.template.childNodes, function(node) {
-      shadowRoot.appendChild(node.cloneNode(true));
-    });
-
-    return shadowRoot;
-  },
-
-  prototypeFromTagName: function(tagName) {
-    return Object.getPrototypeOf(document.createElement(tagName));
-  }
+		return shadowRoot;
+	},
+	prototypeFromTagName: function(tagName) {
+		return Object.getPrototypeOf(document.createElement(tagName));
+	}
 };
 
 // declaration registry singleton
@@ -151,48 +150,47 @@ scope.declarationRegistry = {
 };
 
 scope.DeclarationFactory = function() {
-  // Hard-bind the following methods to "this":
-  this.createDeclaration = this.createDeclaration.bind(this);
+	// Hard-bind the following methods to "this":
+	this.createDeclaration = this.createDeclaration.bind(this);
 };
 
 scope.DeclarationFactory.prototype = {
-  // Called whenever each Declaration instance is created.
-  oncreate: null,
-
-  createDeclaration: function(element) {
-    var name = element.getAttribute('name');
-    if (!name) {
-      // FIXME: Make errors more friendly.
-      console.error('name attribute is required.');
-      return;
-    }
-    var tagName = element.getAttribute('extends');
-    if (!tagName) {
-      // FIXME: Make it work with any element.
-      // FIXME: Make errors more friendly.
-      console.error('extends attribute is required.');
-      return;
-    }
-	//
-	// register this declaration so we can find it by name
-	scope.declarationRegistry.register(name, this);
-    //
-	var constructorName = element.getAttribute('constructor');
-	//
-	//
-    var declaration = new scope.Declaration(name, tagName, constructorName);
-	//
-	//
-    if (constructorName) {
-      window[constructorName] = declaration.archetype.generatedConstructor;
-    }
-
-    [].forEach.call(element.querySelectorAll('script'), declaration.evalScript,
-                    declaration);
-    var template = element.querySelector('template');
-    template && declaration.addTemplate(template);
-    this.oncreate && this.oncreate(declaration);
-  }
+	// Called whenever each Declaration instance is created.
+	oncreate: null,
+	createDeclaration: function(element) {
+		// sugar
+		var a = function(n) {
+			return element.getAttribute(n);
+		};
+		// require a name
+		var name = a('name');
+		if (!name) {
+			// FIXME: Make errors more friendly.
+			console.error('name attribute is required.');
+			return;
+		}
+		// instantiate a declaration
+		var declaration = new scope.Declaration({
+			name: name,
+			tagName: a('extends') || 'div',
+			template: element.querySelector('template'),
+			//constructorName: a('constructor'),
+			resetStyleInheritance: a("reset-style-inheritance"),
+			applyAuthorStyles: a("apply-author-styles")
+		});
+		// register the declaration so we can find it by name
+		scope.declarationRegistry.register(name, declaration);
+		// optionally install the constructor on the global object
+		var ctor = a('constructor');
+		if (ctor) {
+			window[ctor] = declaration.archetype.generatedConstructor;
+		}
+		// evaluate component scripts
+		[].forEach.call(element.querySelectorAll('script'), declaration.evalScript,
+			declaration);
+		// notify observer
+		this.oncreate && this.oncreate(declaration);
+	}
 };
 
 
