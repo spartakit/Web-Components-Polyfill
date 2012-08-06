@@ -114,16 +114,32 @@ scope.Declaration.prototype = {
 	//Function(script.textContent).call(this.archetype);
 	},
 	morph: function(element) {
-		// FIXME: We shouldn't be updating __proto__ like this on each morph.
-		this.archetype.generatedConstructor.prototype.__proto__ = document.createElement(this.archetype.extendsTagName);
-		element.__proto__ = this.archetype.generatedConstructor.prototype;
-		var shadowRoot = this.createShadowRoot(element);
-
-		// Fire created event.
-		this.created && this.created.call(element, shadowRoot);
-		this.inserted && this.inserted.call(element, shadowRoot);
-
-		// Setup mutation observer for attribute changes.
+		// convert element to custom element
+		//
+		// generate an instance of our source component
+		var instance = document.createElement(this.archetype.extendsTagName);
+		// FIXME: this can be done once, as a preprocess
+		this.archetype.generatedConstructor.prototype.__proto__ = instance.__proto__;
+		// graft our enhanced prototype chain onto instance
+		instance.__proto__ = this.archetype.generatedConstructor.prototype;
+		// transplant attributes and content into the new instance
+		this.transplantNodeDecorations(element, instance);
+		// replace the original element in DOM
+		if (element.parentNode) {
+			element.parentNode.replaceChild(instance, element);
+		}
+		//
+		// identify the new type (boo, can't fix tagName in general)
+		instance.setAttribute("is", this.archetype.name);
+		//
+		// construct shadowRoot
+		var shadowRoot = this.createShadowRoot(instance, this.template);
+		//
+		// Fire created event
+		this.created && this.created.call(instance, shadowRoot);
+		this.inserted && this.inserted.call(instance, shadowRoot);
+		//
+		// Setup mutation observer for attribute changes
 		if (this.attributeChanged) {
 			var observer = new WebKitMutationObserver(function(mutations) {
 				mutations.forEach(function(m) {
@@ -140,18 +156,40 @@ scope.Declaration.prototype = {
 			});
 		}
 	},
-	createShadowRoot: function(element) {
-		if (!this.template) {
-			return undefined;
-		}
-
-		var shadowRoot = new WebKitShadowRoot(element);
-		shadowRoot.host = element;
-		[].forEach.call(this.template.childNodes, function(node) {
-			shadowRoot.appendChild(node.cloneNode(true));
+	transplantNodeDecorations: function(inSrc, inDst) {
+		forEach(inSrc.attributes, function(a) {
+			inDst.setAttribute(a.name, a.value);
 		});
-
-		return shadowRoot;
+		if (inSrc.childElementCount == 0) {
+			inDst.innerHTML = inSrc.innerHTML;
+		} else {
+			var n$ = [];
+			forEach(inSrc.children, function(n) {
+				n$.push(n);
+			});
+			forEach(n$, function(n) {
+				inDst.appendChild(n);
+			});
+		}
+	},
+	createShadowRoot: function(element, template) {
+		if (template) {
+			var shadowRoot = new WebKitShadowRoot(element);
+			// NOTE: MDV chromium build implements this element so use it!
+			if (this.template instanceof HTMLTemplateElement) {
+				//console.log("Using native HTMLTemplateElement");
+				shadowRoot.appendChild(this.template.content.cloneNode(true));
+			} else {
+				forEach(this.template.childNodes, function(node) {
+					shadowRoot.appendChild(node.cloneNode(true));
+				});
+			}
+			// FIXME: .host not set automatically (spec says it is [?])
+			if (!shadowRoot.host) {
+				shadowRoot.host = element;
+			}
+			return shadowRoot;
+		}
 	},
 	prototypeFromTagName: function(tagName) {
 		return Object.getPrototypeOf(document.createElement(tagName));
@@ -348,8 +386,7 @@ scope.run = function() {
 	parser.onparse = factory.createDeclaration;
 	factory.oncreate = function(declaration) {
 		[].forEach.call(
-			document.querySelectorAll(declaration.archetype.extendsTagName +
-				'[is=' + declaration.archetype.name + ']'),
+			document.querySelectorAll(declaration.archetype.name),
 			declaration.morph);
 	};
 };
