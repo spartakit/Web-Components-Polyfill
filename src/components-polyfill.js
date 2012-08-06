@@ -221,7 +221,7 @@ scope.DeclarationFactory.prototype = {
 			window[ctor] = declaration.archetype.generatedConstructor;
 		}
 		// load component stylesheets
-		//this.sheets(element, declaration);
+		this.sheets(element, declaration);
 		// evaluate components scripts
 		this.scripts(element, declaration);
 		// evaluate component scripts
@@ -239,6 +239,27 @@ scope.DeclarationFactory.prototype = {
 		// if there is any code, inject it
 		if (script.length) {
 			inject(script.join(';\n'), declaration.archetype, declaration.archetype.name);
+		}
+	},
+	sheets: function(element, declaration) {
+		var sheet = [];
+		if (declaration.template) {
+			console.group("sheets");
+			//var doc = declaration.template.content;
+			var doc = element;
+			forEach($$(doc, "link[rel=stylesheet]"), function(s) {
+				var href = s.getAttribute("href");
+				var styles = scope.loader.loadUrl(href);
+				console.log(href, styles);
+				sheet.push(styles);
+			});
+			if (sheet.length) {
+				console.log("found (", sheet.length, "), injecting");
+				var style = document.createElement("style");
+				style.innerHTML = sheet.join('');
+				declaration.template.content.appendChild(style);
+			}
+			console.groupEnd();
 		}
 	}
 };
@@ -292,6 +313,18 @@ scope.Loader.prototype = {
 			}
 		});
 		request.send();
+	}
+};
+
+scope.loader = {
+	ok: function(inRequest) {
+		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
+	},
+	loadUrl: function(url) {
+		var request = new XMLHttpRequest();
+		request.open('GET', url, false);
+		request.send();
+		return this.ok(request) ? request.response : '';
 	}
 };
 
