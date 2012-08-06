@@ -31,7 +31,7 @@ var lifecycleMethods = ["created", "inserted", "removed", "attributeChanged"];
 scope.HTMLElementElement = function(name, tagName, declaration) {
 	this.name = name;
 	this.extendsTagName = tagName;
-	this.lifecycle = declaration.installLifecycle.bind(declaration);
+	this.lifecycle = scope.Declaration.prototype.installLifecycle.bind(declaration);
 };
 
 scope.HTMLElementElement.prototype = {
@@ -194,80 +194,80 @@ scope.DeclarationFactory.prototype = {
 
 
 scope.Parser = function() {
-  this.parse = this.parse.bind(this);
+	this.parse = this.parse.bind(this);
 };
 
 scope.Parser.prototype = {
-  // Called for each element that's parsed.
-  onparse: null,
+	// Called for each element that's parsed.
+	onparse: null,
 
-  parse: function(string) {
-    var doc = document.implementation.createHTMLDocument();
-    doc.body.innerHTML = string;
-    [].forEach.call(doc.querySelectorAll('element'), function(element) {
-      this.onparse && this.onparse(element);
-    }, this);
-  }
+	parse: function(string) {
+		var doc = document.implementation.createHTMLDocument();
+		doc.body.innerHTML = string;
+		[].forEach.call(doc.querySelectorAll('element'), function(element) {
+			this.onparse && this.onparse(element);
+		}, this);
+	}
 };
 
 
 scope.Loader = function() {
-  this.start = this.start.bind(this);
+	this.start = this.start.bind(this);
 };
 
 scope.Loader.prototype = {
-  // Called for each loaded declaration.
-  onload: null,
-  onerror: null,
+	// Called for each loaded declaration.
+	onload: null,
+	onerror: null,
 
-  start: function() {
-    [].forEach.call(document.querySelectorAll('link[rel=components]'), function(link) {
-      this.load(link.href);
-    }, this);
-  },
+	start: function() {
+		[].forEach.call(document.querySelectorAll('link[rel=components]'), function(link) {
+			this.load(link.href);
+		}, this);
+	},
 
-  load: function(url) {
-    var request = new XMLHttpRequest();
-    var loader = this;
+	load: function(url) {
+		var request = new XMLHttpRequest();
+		var loader = this;
 
-    request.open('GET', url);
-    request.addEventListener('readystatechange', function(e) {
-      if (request.readyState === 4) {
-        if (request.status >= 200 && request.status < 300 || request.status === 304) {
-          loader.onload && loader.onload(request.response);
-        } else {
-          loader.onerror && loader.onerror(request.status, request);
-        }
-      }
-    });
-    request.send();
-  }
+		request.open('GET', url);
+		request.addEventListener('readystatechange', function(e) {
+			if (request.readyState === 4) {
+				if (request.status >= 200 && request.status < 300 || request.status === 304) {
+					loader.onload && loader.onload(request.response);
+				} else {
+					loader.onerror && loader.onerror(request.status, request);
+				}
+			}
+		});
+		request.send();
+	}
 };
 
 scope.run = function() {
-  var loader = new scope.Loader();
-  document.addEventListener('DOMContentLoaded', loader.start);
-  var parser = new scope.Parser();
-  loader.onload = parser.parse;
-  loader.onerror = function(status, resp) {
-    console.error("Unable to load component: Status " + status + " - " +
-                  resp.statusText);
-  };
+	var loader = new scope.Loader();
+	document.addEventListener('DOMContentLoaded', loader.start);
+	var parser = new scope.Parser();
+	loader.onload = parser.parse;
+	loader.onerror = function(status, resp) {
+		console.error("Unable to load component: Status " + status + " - " +
+			resp.statusText);
+	};
 
-  var factory = new scope.DeclarationFactory();
-  parser.onparse = factory.createDeclaration;
-  factory.oncreate = function(declaration) {
-    [].forEach.call(
-      document.querySelectorAll(declaration.archetype.extendsTagName +
-                                '[is=' + declaration.archetype.name + ']'),
-      declaration.morph);
-  };
+	var factory = new scope.DeclarationFactory();
+	parser.onparse = factory.createDeclaration;
+	factory.oncreate = function(declaration) {
+		[].forEach.call(
+			document.querySelectorAll(declaration.archetype.extendsTagName +
+				'[is=' + declaration.archetype.name + ']'),
+			declaration.morph);
+	};
 };
 
 if (!scope.runManually) {
-  scope.run();
+	scope.run();
 }
 
-function nil() {}
+function nop() {}
 
 })(window.__exported_components_polyfill_scope__);
