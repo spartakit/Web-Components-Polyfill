@@ -3,42 +3,9 @@
 scope = scope || {};
 
 if (!window.WebKitShadowRoot) {
-	console.error('Shadow DOM support is required.');
-	return;
+  console.error('Shadow DOM support is required.');
+  return;
 }
-
-// missing DOM/JS API
-
-var forEach = function(inArrayish, inFunc, inScope) {
-	Array.prototype.forEach.call(inArrayish, inFunc, inScope);
-};
-
-var $$ = function(inElement, inSelector) {
-	var nodes = inElement.querySelectorAll(inSelector);
-	nodes.forEach = function(inFunc, inScope) {
-		forEach(nodes, inFunc, inScope);
-	}
-	return nodes;
-};
-
-var mixin = function(inObj, inProps) {
-	var p = inProps, g, s;
-	for (var n in p) {
-		g = p.__lookupGetter__(n);
-		s = p.__lookupSetter__(n);
-		if (g || s) {
-			if (g) {
-				inObj.__defineGetter__(n, g);
-			}
-			if (s) {
-				inObj.__defineSetter__(n, s);
-			}
-		} else {
-			inObj[n] = p[n];
-		}
-	}
-	return inObj;
-};
 
 // debuggable script injection
 // 
@@ -59,8 +26,6 @@ window.componentScript = function(inName, inFunc) {
 	scope.declarationRegistry.exec(inName, inFunc);
 };
 
-// HTMLElementElement
-
 var lifecycleMethods = ["created", "inserted", "removed", "attributeChanged"];
 
 scope.HTMLElementElement = function(name, tagName, declaration) {
@@ -72,8 +37,6 @@ scope.HTMLElementElement = function(name, tagName, declaration) {
 scope.HTMLElementElement.prototype = {
 	__proto__: HTMLElement.prototype
 };
-
-// Declaration
 
 // optional properties for Declaration constructor
 var declarationProperties = ["template", "resetStyleInheritance", "applyAuthorStyles"];
@@ -281,70 +244,16 @@ scope.Loader.prototype = {
 	}
 };
 
-scope.loader = {
-	loadDocuments: function(inLinks) {
-		var docs = [];
-		forEach(inLinks, function(link) {
-			var doc = this.loadDocument(link.getAttribute("href"));
-			if (doc) {
-				docs.push(doc);
-			}
-		}, this);
-		return docs;
-	},
-	loadDocument: function(inUrl) {
-		if (!inUrl) {
-			// TODO: error report here (?)
-		}
-		else {
-			var html = this.loadUrl(inUrl);
-			// TODO: error report here (?)
-			if (html) {
-				return this.makeDocument(html);
-			}
-		}
-	},
-	ok: function(inRequest) {
-		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
-	},
-	loadUrl: function(url) {
-		var request = new XMLHttpRequest();
-		request.open('GET', url, false);
-		request.send();
-		return this.ok(request) ? request.response : '';
-	},
-	makeDocument: function(inHtml) {
-		var doc = document.implementation.createHTMLDocument();
-		doc.body.innerHTML = inHtml;
-		return doc;
-	}
-};
-
-scope.parser = {
-	parseDocument: function(inDocument) {
-		var links = inDocument.querySelectorAll('link[rel=components]');
-		console.log(links);
-		var docs = scope.loader.loadDocuments(links);
-		console.log(docs);
-	}
-};
-
 scope.run = function() {
-	var ready = function() {
-		loader.start();
-		scope.parser.parseDocument(document);
-	};
-	document.addEventListener('DOMContentLoaded', ready);
-	//
 	var loader = new scope.Loader();
-	//
+	document.addEventListener('DOMContentLoaded', loader.start);
 	var parser = new scope.Parser();
 	loader.onload = parser.parse;
 	loader.onerror = function(status, resp) {
 		console.error("Unable to load component: Status " + status + " - " +
 			resp.statusText);
 	};
-	//
+
 	var factory = new scope.DeclarationFactory();
 	parser.onparse = factory.createDeclaration;
 	factory.oncreate = function(declaration) {
