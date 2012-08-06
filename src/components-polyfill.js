@@ -48,8 +48,8 @@ scope.HTMLElementElement.prototype = {
 
 scope.Declaration = function(name, tagName) {
   this.elementPrototype = Object.create(this.prototypeFromTagName(tagName));
-  this.element = new scope.HTMLElementElement(name, tagName, this);
-  this.element.generatedConstructor = this.generateConstructor();
+  this.archetype = new scope.HTMLElementElement(name, tagName, this);
+  this.archetype.generatedConstructor = this.generateConstructor();
   // Hard-bind the following methods to "this":
   this.morph = this.morph.bind(this);
 };
@@ -57,8 +57,8 @@ scope.Declaration = function(name, tagName) {
 scope.Declaration.prototype = {
 
   generateConstructor: function() {
-    var tagName = this.element.extendsTagName;
-    var created = this.element.created;
+    var tagName = this.archetype.extendsTagName;
+    var created = this.archetype.created;
     var extended = function() {
       var element = document.createElement(tagName);
       extended.prototype.__proto__ = element.__proto__;
@@ -70,9 +70,9 @@ scope.Declaration.prototype = {
   },
 
   evalScript: function(script) {
-	inject(script, this.element, this.element.name);
+	inject(script, this.archetype, this.archetype.name);
     //FIXME: Add support for external js loading.
-    //Function(script.textContent).call(this.element);
+    //Function(script.textContent).call(this.archetype);
   },
 
   addTemplate: function(template) {
@@ -81,8 +81,8 @@ scope.Declaration.prototype = {
 
   morph: function(element) {
     // FIXME: We shouldn't be updating __proto__ like this on each morph.
-    this.element.generatedConstructor.prototype.__proto__ = document.createElement(this.element.extendsTagName);
-    element.__proto__ = this.element.generatedConstructor.prototype;
+    this.archetype.generatedConstructor.prototype.__proto__ = document.createElement(this.archetype.extendsTagName);
+    element.__proto__ = this.archetype.generatedConstructor.prototype;
     var shadowRoot = this.createShadowRoot(element);
 
     // Fire created event.
@@ -147,7 +147,7 @@ scope.declarationRegistry = {
 	exec: function(inName, inFunc) {
 		var declaration = this.registry[inName];
 		if (declaration) {
-			inFunc.call(declaration.element);
+			inFunc.call(declaration.archetype);
 		}
 	}
 };
@@ -180,9 +180,13 @@ scope.DeclarationFactory.prototype = {
 	scope.declarationRegistry.register(name, this);
     //
 	var constructorName = element.getAttribute('constructor');
+	//
+	//
     var declaration = new scope.Declaration(name, tagName, constructorName);
+	//
+	//
     if (constructorName) {
-      window[constructorName] = declaration.element.generatedConstructor;
+      window[constructorName] = declaration.archetype.generatedConstructor;
     }
 
     [].forEach.call(element.querySelectorAll('script'), declaration.evalScript,
@@ -259,8 +263,8 @@ scope.run = function() {
   parser.onparse = factory.createDeclaration;
   factory.oncreate = function(declaration) {
     [].forEach.call(
-      document.querySelectorAll(declaration.element.extendsTagName +
-                                '[is=' + declaration.element.name + ']'),
+      document.querySelectorAll(declaration.archetype.extendsTagName +
+                                '[is=' + declaration.archetype.name + ']'),
       declaration.morph);
   };
 };

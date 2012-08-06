@@ -4,7 +4,7 @@ test('.generateConstructor must create a swizzled-prototype, HTMLElement-derived
     var mockElement = function() {}
     var count = 0;
     var result = new (polyfill.Declaration.prototype.generateConstructor.call({
-        element: {
+        archetype: {
             extendsTagName: 'div',
 			created: function() {
 				count = 0;
@@ -19,7 +19,7 @@ test('.generateConstructor must create a swizzled-prototype, HTMLElement-derived
 
 test('.evalScript must attempt to evaluate script, wrapped in a shim', function() {
 	var mockDeclaration = {
-		element: {
+		archetype: {
 			name: "test",
 			evalOk: false
 		}
@@ -27,7 +27,7 @@ test('.evalScript must attempt to evaluate script, wrapped in a shim', function(
 	// FIXME: registry is shared
 	polyfill.declarationRegistry.register("test", mockDeclaration);
     polyfill.Declaration.prototype.evalScript.call(mockDeclaration, 'this.evalOk = true;');
-    ok(mockDeclaration.element.evalOk);
+    ok(mockDeclaration.archetype.evalOk);
 	// FIXME: clean up registry
 	polyfill.declarationRegistry.registry = {};
 });
@@ -39,11 +39,9 @@ test('.addTemplate must set the this.template value', function() {
 });
 
 test('.morph must swizzle prototype of an existing object', 4, function() {
-    var mockElementPrototype = document.createElement('div');
     var element = {};
-    var shadowRootCreated = false;
     polyfill.Declaration.prototype.morph.call({
-        element: {
+        archetype: {
             generatedConstructor: function() {},
             extendsTagName: 'div'
         },
@@ -100,8 +98,8 @@ test('.prototypeFromTagName must return correct HTML element prototype', functio
 test('constructor must correctly initialize instance members', function() {
     var declaration = new polyfill.Declaration('scones', 'div');
     equal(declaration.elementPrototype.constructor, HTMLDivElement);
-    equal(declaration.element.name, 'scones');
-    equal(declaration.element.extendsTagName, 'div');
-    //strictEqual(declaration.element.declaration, declaration);
-    ok(!!declaration.element.generatedConstructor);
+    equal(declaration.archetype.name, 'scones');
+    equal(declaration.archetype.extendsTagName, 'div');
+    //strictEqual(declaration.archetype.declaration, declaration);
+    ok(!!declaration.archetype.generatedConstructor);
 });

@@ -15,7 +15,7 @@ module('DeclarationFactory', {
             this.name = name;
             this.tagName = tagName;
             this.constructorName = constructorName;
-            this.element = {
+            this.archetype = {
                 generatedConstructor: 'mockConstructor'
             }
             this.evalScript = function(scriptElement) {
