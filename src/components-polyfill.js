@@ -132,7 +132,7 @@ scope.declarationRegistry = {
 		var results = [];
 		var d = inDeclaration;
 		while (d) {
-			d = this.registry[d.archetype.extends];
+			d = this.registry[d.archetype.extendsTagName];
 			if (d) {
 				results.unshift(d);
 			}
