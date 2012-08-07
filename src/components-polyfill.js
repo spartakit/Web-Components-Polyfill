@@ -61,8 +61,6 @@ window.componentScript = function(inName, inFunc) {
 
 // HTMLElementElement
 
-var lifecycleMethods = ["created", "inserted", "removed", "attributeChanged"];
-
 scope.HTMLElementElement = function(name, tagName, declaration) {
 	this.name = name;
 	this.extendsTagName = tagName;
@@ -75,10 +73,9 @@ scope.HTMLElementElement.prototype = {
 
 // Declaration
 
-// optional properties for Declaration constructor
-var declarationProperties = ["template", "resetStyleInheritance", "applyAuthorStyles"];
-
 scope.Declaration = function(inProps) {
+	// optional properties for Declaration constructor
+	var declarationProperties = ["template", "resetStyleInheritance", "applyAuthorStyles"];
 	// initialize properties
 	declarationProperties.forEach(function(m) {
 		this[m] = inProps[m];
@@ -95,14 +92,12 @@ scope.Declaration.prototype = {
 	generateConstructor: function() {
 		var archetype = this.archetype;
 		var extended = function() {
-			var element = document.createElement(archetype.extendsTagName);
-			extended.prototype.__proto__ = element.__proto__;
-			element.__proto__ = extended.prototype;
-			archetype.created.call(element);
+			return declaration.morph(document.createElement(archetype.name));
 		};
 		return extended;
 	},
 	installLifecycle: function(inMap) {
+		var lifecycleMethods = ["created", "inserted", "removed", "attributeChanged"];
 		lifecycleMethods.forEach(function(m) {
 			this[m] = inMap[m] || nop;
 		}, this);
@@ -110,8 +105,7 @@ scope.Declaration.prototype = {
 	},
 	evalScript: function(script) {
 		inject(script, this.archetype, this.archetype.name);
-	//FIXME: Add support for external js loading.
-	//Function(script.textContent).call(this.archetype);
+		//FIXME: Add support for external js loading.
 	},
 	morph: function(element) {
 		// convert element to custom element
@@ -216,7 +210,19 @@ scope.declarationRegistry = {
 		if (declaration) {
 			inFunc.call(declaration.archetype);
 		}
+	},
+	// make component from inName's declaration
+	make: function(inName) {
+		var declaration = this.registry[inName];
+		if (declaration) {
+			return declaration.archetype.generatedConstructor();
+		}
 	}
+};
+
+var domCreateElement = document.createElement.bind(document);
+document.createElement = function(inTag) {
+	return scope.declarationRegistry.make(inTag) || domCreateElement(inTag);
 };
 
 scope.DeclarationFactory = function() {
@@ -259,9 +265,6 @@ scope.DeclarationFactory.prototype = {
 		this.sheets(element, declaration);
 		// evaluate components scripts
 		this.scripts(element, declaration);
-		// evaluate component scripts
-		//[].forEach.call(element.querySelectorAll('script'), declaration.evalScript,
-		//	declaration);
 		// notify observer
 		this.oncreate && this.oncreate(declaration);
 	},
