@@ -21,6 +21,7 @@ var $$ = function(inElement, inSelector) {
 	return nodes;
 };
 
+/*
 var mixin = function(inObj, inProps) {
 	var p = inProps, g, s;
 	for (var n in p) {
@@ -39,9 +40,10 @@ var mixin = function(inObj, inProps) {
 	}
 	return inObj;
 };
+*/
 
 // debuggable script injection
-// 
+//
 // this technique allows the component scripts to be
 // viewable and debuggable in inspector scripts
 // tab (although they are all named "(program)").
@@ -191,7 +193,6 @@ scope.Declaration.prototype = {
 	}
 };
 
-// declaration registry singleton
 scope.declarationRegistry = {
 	registry: {},
 	register: function(name, declaration) {
@@ -230,19 +231,13 @@ scope.declarationRegistry = {
 	}
 };
 
+// allow document.createElement to delegate to declarationRegistry
 var domCreateElement = document.createElement.bind(document);
 document.createElement = function(inTag) {
 	return scope.declarationRegistry.make(inTag) || domCreateElement(inTag);
 };
 
-scope.DeclarationFactory = function() {
-	// target for @host rules
-	this.hostSheet = this.createHostSheet();
-};
-
-scope.DeclarationFactory.prototype = {
-	// Called whenever each Declaration instance is created.
-	oncreate: null,
+scope.declarationFactory = {
 	createDeclaration: function(element) {
 		// sugar
 		var a = function(n) {
@@ -278,8 +273,6 @@ scope.DeclarationFactory.prototype = {
 		this.applyHostStyles(declaration);
 		// evaluate components scripts
 		this.scripts(element, declaration);
-		// notify observer
-		this.oncreate && this.oncreate(declaration);
 		console.groupEnd();
 	},
 	scripts: function(element, declaration) {
@@ -340,65 +333,27 @@ scope.DeclarationFactory.prototype = {
 		} else {
 			h.appendChild(s);
 		}
-		return s;
-	}
-};
-
-scope.Parser = function() {
-};
-
-scope.Parser.prototype = {
-	// Called for each element that's parsed.
-	onparse: null,
-	parse: function(string) {
-		var doc = document.implementation.createHTMLDocument();
-		doc.body.innerHTML = string;
-		[].forEach.call(doc.querySelectorAll('element'), function(element) {
-			this.onparse && this.onparse(element);
-		}, this);
-	}
-};
-
-
-scope.Loader = function() {
-	this.start = this.start.bind(this);
-};
-
-scope.Loader.prototype = {
-	// Called for each loaded declaration.
-	onload: null,
-	onerror: null,
-	oncomplete: null,
-	start: function() {
-		[].forEach.call(document.querySelectorAll('link[rel=components]'), function(link) {
-			this.load(link.href);
-		}, this);
-		this.oncomplete && this.oncomplete(this);
-	},
-	load: function(url) {
-		// go sync for now
-		var response = scope.loader.loadUrl(url);
-		this.onload && this.onload(response);
-		/*
-		var request = new XMLHttpRequest();
-		var loader = this;
-
-		request.open('GET', url, false);
-		request.addEventListener('readystatechange', function(e) {
-			if (request.readyState === 4) {
-				if (request.status >= 200 && request.status < 300 || request.status === 304) {
-					loader.onload && loader.onload(request.response);
-				} else {
-					loader.onerror && loader.onerror(request.status, request);
-				}
-			}
-		});
-		request.send();
-		*/
+		this.hostSheet = s;
 	}
 };
 
 scope.loader = {
+	loadDocuments: function(inLinks) {
+		var href, html, docs = [];
+		forEach(inLinks, function(link) {
+			href = link.getAttribute("href");
+			html = href && this.loadUrl(href);
+			if (html) {
+				docs.push(this.makeDocument(html));
+			}
+		}, this);
+		return docs;
+	},
+	makeDocument: function(inHtml) {
+		var doc = document.implementation.createHTMLDocument();
+		doc.body.innerHTML = inHtml;
+		return doc;
+	},
 	ok: function(inRequest) {
 		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
 	},
@@ -410,44 +365,47 @@ scope.loader = {
 	}
 };
 
+scope.parser = {
+	parseDocument: function(inDocument) {
+		this.parseLinkedDocuments(inDocument);
+		this.parseElements(inDocument);
+	},
+	parseLinkedDocuments: function(inDocument) {
+		var docs = scope.loader.loadDocuments($$(inDocument, 'link[rel=components]'));
+		// yield here when async
+		this.parseDocuments(docs);
+	},
+	parseDocuments: function(inDocs) {
+		forEach(inDocs, this.parseDocument, this);
+	},
+	parseElements: function(inDocument) {
+		$$(inDocument, 'element').forEach(function(element) {
+			this.parseElement(element);
+		}, this);
+	},
+	parseElement: function(inElement) {
+		scope.declarationFactory.createDeclaration(inElement);
+	}
+};
+
+scope.webComponentsReady = function() {
+	// create the event
+	var e = document.createEvent('Event');
+	// define that the event name is `build`
+	e.initEvent('WebComponentsReady', true, true);
+	// elem is any element
+	window.document.body.dispatchEvent(e);
+};
+
+scope.ready = function() {
+	scope.declarationFactory.createHostSheet();
+	scope.parser.parseDocument(document);
+	scope.declarationRegistry.morphAll(document);
+	scope.webComponentsReady();
+};
+
 scope.run = function() {
-	var ready = function() {
-		loader.start();
-		//scope.parser.parseDocument(document);
-	};
-	document.addEventListener('DOMContentLoaded', ready);
-	//
-	var loader = new scope.Loader();
-	//
-	var parser = new scope.Parser();
-	loader.onload = parser.parse.bind(parser);
-	loader.onerror = function(status, resp) {
-		console.error("Unable to load component: Status " + status + " - " +
-			resp.statusText);
-	};
-	//
-	var factory = new scope.DeclarationFactory();
-	parser.onparse = function(element) {
-		factory.createDeclaration(element);
-	};
-	/*
-	factory.oncreate = function(declaration) {
-		[].forEach.call(
-			document.querySelectorAll(declaration.archetype.name + ',[is=' + declaration.archetype.name + ']'),
-			declaration.morph);
-	};
-	*/
-	//
-	loader.oncomplete = function() {
-		scope.declarationRegistry.morphAll(document);
-		//
-		// create the event
-		var e = document.createEvent('Event');
-		// define that the event name is `build`
-		e.initEvent('WebComponentsReady', true, true);
-		// elem is any element
-		window.dispatchEvent(e);
-	};
+	document.addEventListener('DOMContentLoaded', scope.ready);
 };
 
 if (!scope.runManually) {
