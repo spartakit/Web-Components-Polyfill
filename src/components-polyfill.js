@@ -190,9 +190,6 @@ scope.Declaration.prototype = {
 			}
 			return shadowRoot;
 		}
-	},
-	prototypeFromTagName: function(tagName) {
-		return Object.getPrototypeOf(document.createElement(tagName));
 	}
 };
 
