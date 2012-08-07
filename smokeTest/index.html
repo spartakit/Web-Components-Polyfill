@@ -9,6 +9,11 @@
 	<body>
 		<div>Check Console</div>
 		<hr/>
+		Declarative x-foo, say hello:
 		<x-foo></x-foo>
+		Imperative x-foo, say hello:
+		<script>
+			document.body.appendChild(document.createElement("x-foo"));
+		</script>
 	</body>
 </html>
