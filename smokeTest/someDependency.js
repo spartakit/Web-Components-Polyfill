@@ -65,6 +65,8 @@ scope.Declaration = function(inProps) {
 	this.archetype = new scope.HTMLElementElement(inProps.name, inProps.tagName, this);
 	// generate a custom element constructor
 	this.archetype.generatedConstructor = this.generateConstructor();
+	// Hard-bind the following methods to "this":
+	this.morph = this.morph.bind(this);
 };
 
 scope.Declaration.prototype = {
@@ -315,14 +317,12 @@ scope.declarationFactory = {
 
 scope.loader = {
 	loadDocuments: function(inLinks) {
-		var href, html, doc, docs = [];
+		var href, html, docs = [];
 		forEach(inLinks, function(link) {
 			href = link.getAttribute("href");
 			html = href && this.loadUrl(href);
 			if (html) {
-				doc = this.makeDocument(html);
-				doc.name = href;
-				docs.push(doc);
+				docs.push(this.makeDocument(html));
 			}
 		}, this);
 		return docs;
@@ -345,11 +345,8 @@ scope.loader = {
 
 scope.parser = {
 	parseDocument: function(inDocument) {
-		console.group(inDocument.name || inDocument.URL);
 		this.parseLinkedDocuments(inDocument);
-		this.parseExternalScripts(inDocument);
 		this.parseElements(inDocument);
-		console.groupEnd();
 	},
 	parseLinkedDocuments: function(inDocument) {
 		var docs = scope.loader.loadDocuments($$(inDocument, 'link[rel=components]'));
@@ -358,17 +355,6 @@ scope.parser = {
 	},
 	parseDocuments: function(inDocs) {
 		forEach(inDocs, this.parseDocument, this);
-	},
-	parseExternalScripts: function(inDocument) {
-		if (inDocument != document) {
-			var head = document.querySelector("head");
-			$$(inDocument, 'script[src]').forEach(function(s) {
-				// NOTE: will load asynchronously
-				var ss = document.createElement("script");
-				ss.src = s.getAttribute("src");
-				head.appendChild(ss);
-			});
-		}
 	},
 	parseElements: function(inDocument) {
 		$$(inDocument, 'element').forEach(function(element) {
@@ -404,6 +390,6 @@ if (!scope.runManually) {
 	scope.run();
 }
 
-function nop() {};
+function nop() {}
 
 })(window.__exported_components_polyfill_scope__);
