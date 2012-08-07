@@ -100,20 +100,19 @@ scope.Declaration.prototype = {
 		instance.__proto__ = this.archetype.generatedConstructor.prototype;
 		// transplant attributes and content into the new instance
 		this.transplantNodeDecorations(element, instance);
-		// replace the original element in DOM
-		if (element.parentNode) {
-			element.parentNode.replaceChild(instance, element);
-		}
 		//
 		// identify the new type (boo, can't fix tagName in general)
 		instance.setAttribute("is", this.archetype.name);
 		//
 		// construct shadowRoot
 		var shadowRoot = this.createShadowRoot(instance, this.template);
-		//
-		// Fire created event
 		this.created && this.created.call(instance, shadowRoot);
-		this.inserted && this.inserted.call(instance, shadowRoot);
+		//
+		// replace the original element in DOM
+		if (element.parentNode) {
+			element.parentNode.replaceChild(instance, element);
+			this.inserted && this.inserted.call(instance, shadowRoot);
+		}
 		//
 		// Setup mutation observer for attribute changes
 		if (this.attributeChanged) {
