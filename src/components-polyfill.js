@@ -338,7 +338,6 @@ scope.Parser = function() {
 scope.Parser.prototype = {
 	// Called for each element that's parsed.
 	onparse: null,
-
 	parse: function(string) {
 		var doc = document.implementation.createHTMLDocument();
 		doc.body.innerHTML = string;
@@ -357,13 +356,11 @@ scope.Loader.prototype = {
 	// Called for each loaded declaration.
 	onload: null,
 	onerror: null,
-
 	start: function() {
 		[].forEach.call(document.querySelectorAll('link[rel=components]'), function(link) {
 			this.load(link.href);
 		}, this);
 	},
-
 	load: function(url) {
 		var request = new XMLHttpRequest();
 		var loader = this;
@@ -414,7 +411,7 @@ scope.run = function() {
 	parser.onparse = factory.createDeclaration.bind(factory);
 	factory.oncreate = function(declaration) {
 		[].forEach.call(
-			document.querySelectorAll(declaration.archetype.name),
+			document.querySelectorAll(declaration.archetype.name + ',[is=' + declaration.archetype.name + ']'),
 			declaration.morph);
 	};
 };
