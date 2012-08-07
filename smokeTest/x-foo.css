@@ -1,4 +1,7 @@
 @host { 
-	font-family: sans-serif;
+	font-family: arial;
+	font-size: large;
+	font-weight: bold;
 	margin-left: 96px;
+	color: blue;
 }

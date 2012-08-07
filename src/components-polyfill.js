@@ -170,9 +170,9 @@ scope.Declaration.prototype = {
 		if (template) {
 			var shadowRoot = new WebKitShadowRoot(element);
 			// NOTE: MDV chromium build implements this element so use it!
-			if (this.template instanceof HTMLTemplateElement) {
+			if (template instanceof HTMLTemplateElement) {
 				//console.log("Using native HTMLTemplateElement");
-				shadowRoot.appendChild(this.template.content.cloneNode(true));
+				shadowRoot.appendChild(template.content.cloneNode(true));
 			} else {
 				forEach(this.template.childNodes, function(node) {
 					shadowRoot.appendChild(node.cloneNode(true));
@@ -226,8 +226,8 @@ document.createElement = function(inTag) {
 };
 
 scope.DeclarationFactory = function() {
-	// Hard-bind the following methods to "this":
-	this.createDeclaration = this.createDeclaration.bind(this);
+	// target for @host rules
+	this.hostSheet = this.createHostSheet();
 };
 
 scope.DeclarationFactory.prototype = {
@@ -263,6 +263,8 @@ scope.DeclarationFactory.prototype = {
 		}
 		// load component stylesheets
 		this.sheets(element, declaration);
+		// apply @host styles.
+		this.applyHostStyles(declaration);
 		// evaluate components scripts
 		this.scripts(element, declaration);
 		// notify observer
@@ -292,19 +294,45 @@ scope.DeclarationFactory.prototype = {
 				sheet.push(styles);
 			});
 			if (sheet.length) {
-				console.log("found (", sheet.length, "), injecting");
+				console.log("sheets found (", sheet.length, "), injecting");
 				var style = document.createElement("style");
 				style.innerHTML = sheet.join('');
 				declaration.template.content.appendChild(style);
 			}
 			console.groupEnd();
 		}
+	},
+	hostRe:/@host[^{]*({[^{]*})/gim,
+	applyHostStyles: function(declaration) {
+		// strategy: apply a rule for each @host rule with @host replaced with the component name
+		// into a stylesheet added at the top of head (so it's least specific)
+		if (declaration.template) {
+			forEach($$(declaration.template.content, "style"), function(s) {
+				var matches = s.innerHTML.match(this.hostRe);
+				if (matches) {
+					matches.forEach(function(m) {
+						var s = m.replace("@host", "[is=" + declaration.archetype.name + "]");
+						var n = document.createTextNode(s);
+						this.hostSheet.appendChild(n);
+					}, this);
+				}
+			}, this);
+		}
+	},
+	// support for creating @host rules
+	createHostSheet: function() {
+		var s = document.createElement("style");
+		var h = document.head;
+		if (h.children.length) {
+			h.insertBefore(s, h.children[0]);
+		} else {
+			h.appendChild(s);
+		}
+		return s;
 	}
 };
 
-
 scope.Parser = function() {
-	this.parse = this.parse.bind(this);
 };
 
 scope.Parser.prototype = {
@@ -376,14 +404,14 @@ scope.run = function() {
 	var loader = new scope.Loader();
 	//
 	var parser = new scope.Parser();
-	loader.onload = parser.parse;
+	loader.onload = parser.parse.bind(parser);
 	loader.onerror = function(status, resp) {
 		console.error("Unable to load component: Status " + status + " - " +
 			resp.statusText);
 	};
 	//
 	var factory = new scope.DeclarationFactory();
-	parser.onparse = factory.createDeclaration;
+	parser.onparse = factory.createDeclaration.bind(factory);
 	factory.oncreate = function(declaration) {
 		[].forEach.call(
 			document.querySelectorAll(declaration.archetype.name),
