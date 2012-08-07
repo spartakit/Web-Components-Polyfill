@@ -90,9 +90,9 @@ scope.Declaration = function(inProps) {
 
 scope.Declaration.prototype = {
 	generateConstructor: function() {
-		var archetype = this.archetype;
+		var declaration = this;
 		var extended = function() {
-			return declaration.morph(document.createElement(archetype.name));
+			return declaration.morph(domCreateElement(declaration.archetype.name));
 		};
 		return extended;
 	},
@@ -108,6 +108,7 @@ scope.Declaration.prototype = {
 		//FIXME: Add support for external js loading.
 	},
 	morph: function(element) {
+		console.group("morphing an", this.archetype.name)
 		// convert element to custom element
 		//
 		// generate an instance of our source component
@@ -149,6 +150,9 @@ scope.Declaration.prototype = {
 				attributeOldValue: true
 			});
 		}
+		//
+		console.groupEnd();
+		return instance;
 	},
 	transplantNodeDecorations: function(inSrc, inDst) {
 		forEach(inSrc.attributes, function(a) {
@@ -217,6 +221,12 @@ scope.declarationRegistry = {
 		if (declaration) {
 			return declaration.archetype.generatedConstructor();
 		}
+	},
+	morphAll: function(inNode) {
+		for (var n in this.registry) {
+			var d = this.registry[n];
+			forEach($$(inNode, d.archetype.name + ',[is=' + d.archetype.name + ']'), d.morph, d);
+		}
 	}
 };
 
@@ -245,6 +255,7 @@ scope.DeclarationFactory.prototype = {
 			console.error('name attribute is required.');
 			return;
 		}
+		console.group("creating an", name, "declaration");
 		// instantiate a declaration
 		var declaration = new scope.Declaration({
 			name: name,
@@ -269,6 +280,7 @@ scope.DeclarationFactory.prototype = {
 		this.scripts(element, declaration);
 		// notify observer
 		this.oncreate && this.oncreate(declaration);
+		console.groupEnd();
 	},
 	scripts: function(element, declaration) {
 		// accumulate all script content from the element declaration
@@ -356,16 +368,22 @@ scope.Loader.prototype = {
 	// Called for each loaded declaration.
 	onload: null,
 	onerror: null,
+	oncomplete: null,
 	start: function() {
 		[].forEach.call(document.querySelectorAll('link[rel=components]'), function(link) {
 			this.load(link.href);
 		}, this);
+		this.oncomplete && this.oncomplete(this);
 	},
 	load: function(url) {
+		// go sync for now
+		var response = scope.loader.loadUrl(url);
+		this.onload && this.onload(response);
+		/*
 		var request = new XMLHttpRequest();
 		var loader = this;
 
-		request.open('GET', url);
+		request.open('GET', url, false);
 		request.addEventListener('readystatechange', function(e) {
 			if (request.readyState === 4) {
 				if (request.status >= 200 && request.status < 300 || request.status === 304) {
@@ -376,6 +394,7 @@ scope.Loader.prototype = {
 			}
 		});
 		request.send();
+		*/
 	}
 };
 
@@ -408,11 +427,26 @@ scope.run = function() {
 	};
 	//
 	var factory = new scope.DeclarationFactory();
-	parser.onparse = factory.createDeclaration.bind(factory);
+	parser.onparse = function(element) {
+		factory.createDeclaration(element);
+	};
+	/*
 	factory.oncreate = function(declaration) {
 		[].forEach.call(
 			document.querySelectorAll(declaration.archetype.name + ',[is=' + declaration.archetype.name + ']'),
 			declaration.morph);
+	};
+	*/
+	//
+	loader.oncomplete = function() {
+		scope.declarationRegistry.morphAll(document);
+		//
+		// create the event
+		var e = document.createEvent('Event');
+		// define that the event name is `build`
+		e.initEvent('WebComponentsReady', true, true);
+		// elem is any element
+		window.dispatchEvent(e);
 	};
 };
 
