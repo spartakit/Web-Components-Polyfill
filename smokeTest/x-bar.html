@@ -1,9 +1,11 @@
-<element name="x-foo" constructor="XFoo">
-<link rel="stylesheet" href="x-foo.css"/>
+<element name="x-bar" extends="x-foo" constructor="XBar">
 <template>
-	Hello from x-foo.
+	Text node prologue.
+	<div>Hello from x-bar.</div>
+	<shadow></shadow>
+	<div>Goodbye from x-bar.</div>
+	Text node epilogue.
 </template>
 <script>
-	console.log("Hello from x-foo script context.");
 </script>
 </element>

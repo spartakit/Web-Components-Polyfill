@@ -6,7 +6,12 @@
 	<script src="../src/components-polyfill.js"></script>
 	<link rel="components" href="x-foo.html"/>
 	<link rel="components" href="x-image.html"/>
+	<link rel="components" href="x-bar.html"/>
 	<style>
+		body {
+			opacity: 0;
+			-webkit-transition: opacity 0.5s ease-in-out;
+		}
 	</style>
 </head>
 <body>
@@ -23,5 +28,13 @@
 	<hr/>
 	x-image:
 	<x-image src="http://www.google.com/logos/2012/javelin-2012-hp.jpg"></x-image>
+	<hr/>
+	Declarative x-bar (extends x-foo), say hello:
+	<x-bar></x-bar>
+	<script>
+		window.addEventListener("WebComponentsReady", function() {
+			document.body.style.opacity = 1;
+		});
+	</script>
 </body>
 </html>
