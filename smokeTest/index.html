@@ -1,21 +1,27 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title></title>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<script src="../src/components-polyfill.js"></script>
-		<link rel="components" href="x-foo.html"/>
-		<style>
-		</style>
-	</head>
-	<body>
-		<div>Check Console</div>
-		<hr/>
-		Declarative x-foo, say hello:
-		<x-foo></x-foo>
-		Imperative x-foo, say hello:
-		<script>
-			document.body.appendChild(document.createElement("x-foo"));
-		</script>
-	</body>
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../src/components-polyfill.js"></script>
+	<link rel="components" href="x-foo.html"/>
+	<link rel="components" href="x-image.html"/>
+	<style>
+	</style>
+</head>
+<body>
+	<div>Check Console</div>
+	<hr/>
+	Declarative x-foo, say hello:
+	<x-foo></x-foo>
+	Imperative x-foo, say hello:
+	<script>
+		document.body.appendChild(document.createElement("x-foo"));
+	</script>
+	Declarative is="x-foo", say hello:
+	<div is="x-foo"></div>
+	<hr/>
+	x-image:
+	<x-image src="http://www.google.com/logos/2012/javelin-2012-hp.jpg"></x-image>
+</body>
 </html>
