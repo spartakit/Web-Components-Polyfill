@@ -21,27 +21,6 @@ var $$ = function(inElement, inSelector) {
 	return nodes;
 };
 
-/*
-var mixin = function(inObj, inProps) {
-	var p = inProps, g, s;
-	for (var n in p) {
-		g = p.__lookupGetter__(n);
-		s = p.__lookupSetter__(n);
-		if (g || s) {
-			if (g) {
-				inObj.__defineGetter__(n, g);
-			}
-			if (s) {
-				inObj.__defineSetter__(n, s);
-			}
-		} else {
-			inObj[n] = p[n];
-		}
-	}
-	return inObj;
-};
-*/
-
 // debuggable script injection
 //
 // this technique allows the component scripts to be
