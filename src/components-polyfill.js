@@ -1,5 +1,7 @@
 (function(scope) {
 
+// NOTE: depends on 'window' and 'document' globals
+
 scope = scope || {};
 
 if (!window.WebKitShadowRoot) {
@@ -313,24 +315,39 @@ scope.declarationFactory = {
 	}
 };
 
+// use for qualifying urls
+var anchor = document.createElement('a');
+
+// construct HTMLDocument from HTML
+var makeDocument = function(inHtml, inName) {
+	var doc = document.implementation.createHTMLDocument();
+	doc.body.innerHTML = inHtml;
+	doc.name = inName;
+	return doc;
+};
+
 scope.loader = {
-	loadDocuments: function(inLinks) {
-		var href, html, doc, docs = [];
+	// extract qualified urls from hrefs in <link rel="components" href="..."> tags
+	linksToUrls: function(inLinks) {
+		var urls = [];
 		forEach(inLinks, function(link) {
-			href = link.getAttribute("href");
-			html = href && this.loadUrl(href);
+			var href = link.getAttribute("href");
+			if (href) {	
+				anchor.href = href;
+				urls.push(anchor.href);
+			}
+		});
+		return urls;
+	},
+	loadDocuments: function(inLinks) {
+		var html, doc, docs = [];
+		forEach(this.linksToUrls(inLinks), function(url) {
+			html = this.loadUrl(url);
 			if (html) {
-				doc = this.makeDocument(html);
-				doc.name = href;
-				docs.push(doc);
+				docs.push(makeDocument(html, url));
 			}
 		}, this);
 		return docs;
-	},
-	makeDocument: function(inHtml) {
-		var doc = document.implementation.createHTMLDocument();
-		doc.body.innerHTML = inHtml;
-		return doc;
 	},
 	ok: function(inRequest) {
 		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
@@ -362,13 +379,16 @@ scope.parser = {
 	parseExternalScripts: function(inDocument) {
 		if (inDocument != document) {
 			var head = document.querySelector("head");
-			$$(inDocument, 'script[src]').forEach(function(s) {
-				// NOTE: will load asynchronously
-				var ss = document.createElement("script");
-				ss.src = s.getAttribute("src");
-				head.appendChild(ss);
-			});
+			$$(inDocument, 'script[src]').forEach(this.injectScriptTag);
 		}
+	},
+	// FIXME: only here so it can be stubbed for testing
+	// Instead, expose a 'utils' object on 'scope' for such things
+	injectScriptTag: function(inSrc) {
+		// NOTE: will load asynchronously
+		var ss = document.createElement("script");
+		ss.src = s.getAttribute("src");
+		head.appendChild(ss);
 	},
 	parseElements: function(inDocument) {
 		$$(inDocument, 'element').forEach(function(element) {

@@ -1,96 +1,103 @@
-module("Loader");
+module('Loader', {
+	setup: function() {
+		var mockXhr = function(){};
+		mockXhr.prototype = {
+			status: 200,
+			response: "mock",
+			open: function(inMethod, inUrl) {
+			},
+			send: function(){
+			}
+		}
+		this.withMockXhr = function(fn) {
+			this.replacedXHR = XMLHttpRequest;
+			window.XMLHttpRequest = mockXhr;
+			fn.call(this);
+			window.XMLHttpRequest = this.replacedXHR;
+		};
+	},
+	teardown: function() {
+	}
+});
 
-test('.start must find all link[rel=components] instances in the document', 3, function() {
-    var fixture = document.querySelector('#qunit-fixture');
+test(".linksToUrls must qualify urls", 4, function() {
+	var links = [];
+    var createComponentsLink = function(href) {
+        var link = document.createElement('link');
+        link.rel = 'components';
+        link.href = href;
+		links.push(link);
+	};
+	//
+    var hrefs = ['monkey', '.', 'http://bear/'];
+    hrefs.forEach(createComponentsLink);
+	//
+	var urls = polyfill.loader.linksToUrls(links);
+	equal(urls.length, 3);
+	//
+    var a = document.createElement('a');
+	for (var i=0; i<3; i++) {
+		a.href = hrefs[i];
+		equal(urls[i], a.href);
+	}
+});
+
+test(".loadDocuments must convert link tags into HTMLDocument instances", 2, function() {
+	var links = [];
     var createComponentsLink = function(url) {
-        var link = fixture.appendChild(document.createElement('link'));
+        var link = document.createElement('link');
         link.rel = 'components';
         link.href = url;
-    }
-
-    var urls = [ 'http://monkey/', 'http://bear/', 'http://fish/' ];
+		links.push(link);
+	};
+	//
+    var urls = ['http://monkey/', 'http://bear/', 'http://fish/'];
     urls.forEach(createComponentsLink);
-
-    var loader = new polyfill.Loader();
-    var counter = 0;
-    var loadMethodOverride = function(url)
-    {
-        equal(url, urls[counter++]);
-    }
-    loader.load = loadMethodOverride;
-    loader.start();
+	//
+	var docs;
+	this.withMockXhr(function() {
+		docs = polyfill.loader.loadDocuments(links);
+	});
+	equal(docs.length, 3);
+	//
+	var areHtmlDocs = true;
+	docs.forEach(function(d) {
+		areHtmlDocs = areHtmlDocs && (d instanceof HTMLDocument);
+	});
+	ok(areHtmlDocs);
 });
 
-test('.start must supply pre-resolved urls', 3, function() {
-    var fixture = document.querySelector('#qunit-fixture');
+
+test(".ok must return true for non-error XHR status codes", 10, function() {
+	// NOTE: xhr from file:// on some devices can return weird status codes (0?)
+	ok(polyfill.loader.ok({status: 200}));
+	ok(polyfill.loader.ok({status: 201}));
+	ok(polyfill.loader.ok({status: 202}));
+	ok(polyfill.loader.ok({status: 203}));
+	ok(polyfill.loader.ok({status: 204}));
+	ok(polyfill.loader.ok({status: 205}));
+	ok(polyfill.loader.ok({status: 206}));
+	ok(polyfill.loader.ok({status: 304}));
+	ok(!polyfill.loader.ok({status: 404}));
+	ok(!polyfill.loader.ok({status: 500}));
+});
+
+test('.loadUrl must fetch contents of a file synchronously', 1, function() {
+	var contents = polyfill.loader.loadUrl('resources/char.txt');
+    equal(contents, 'A');
+});
+
+test('end-to-end test', 2, function() {
     var createComponentsLink = function(url) {
-        var link = fixture.appendChild(document.createElement('link'));
+        var link = document.createElement('link');
         link.rel = 'components';
         link.href = url;
-    }
-
-    var urls = [ 'monkey', '', 'https://fish' ];
-    urls.forEach(createComponentsLink);
-
-    var a = document.createElement('a');
-    var resolvedUrls = urls.map(function(url) {
-        a.href = url;
-        return a.href;
-    });
-
-    var loader = new polyfill.Loader();
-    var counter = 0;
-    var loadMethodOverride = function(url)
-    {
-        equal(url, resolvedUrls[counter++]);
-    }
-    loader.load = loadMethodOverride;
-    loader.start();
-});
-
-asyncTest('.load must fetch contents of a file and invoke .onload', 1, function() {
-    var a = document.createElement('a');
-    a.href = 'resources/char.txt';
-    var url = a.href;
-
-    var loader = new polyfill.Loader();
-    loader.onload = function(contents)
-    {
-        equal(contents, 'A');
-        start();
-    }
-    loader.load(url);
-});
-
-asyncTest('.load must fail gracefully on file load and invoke .onerror', 1, function(){
-    var a = document.createElement('a');
-    a.href = 'cant/find.me';
-    var url = a.href;
-
-    var loader = new polyfill.Loader();
-    loader.onerror = function(status, xhr)
-    {
-        equal(status, 404);
-        start();
-    }
-    loader.load(url);
-});
-
-asyncTest('end-to-end test', 1, function() {
-    var fixture = document.querySelector('#qunit-fixture');
-    var createComponentsLink = function(url) {
-        var link = fixture.appendChild(document.createElement('link'));
-        link.rel = 'components';
-        link.href = url;
-    }
-
-    createComponentsLink('resources/char.txt')
-
-    var loader = new polyfill.Loader();
-    loader.onload = function(contents)
-    {
-        equal(contents, 'A');
-        start();
-    }
-    loader.start();
+		return link;
+    };
+    var links = [createComponentsLink('resources/char.txt')];
+	//
+	var docs = polyfill.loader.loadDocuments(links);
+	equal(docs.length, 1);
+	console.log(docs);
+	equal(docs[0].body.innerHTML, 'A')
 });
