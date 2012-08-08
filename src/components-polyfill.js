@@ -94,9 +94,9 @@ scope.Declaration.prototype = {
 		//
 		// generate an instance of our source component
 		var instance = document.createElement(this.archetype.extendsTagName);
-		// FIXME: this can be done once, as a preprocess
+		// link canonical instance prototype to our custom prototype
 		this.archetype.generatedConstructor.prototype.__proto__ = instance.__proto__;
-		// graft our enhanced prototype chain onto instance
+		// graft our enhanced prototype chain back onto instance
 		instance.__proto__ = this.archetype.generatedConstructor.prototype;
 		// transplant attributes and content into the new instance
 		this.transplantNodeDecorations(element, instance);
@@ -106,6 +106,11 @@ scope.Declaration.prototype = {
 		//
 		// construct shadowRoot
 		var shadowRoot = this.createShadowRoot(instance, this.template);
+		// instantiate internal web components
+		if (shadowRoot) {
+			// note: potentially recursive
+			scope.declarationRegistry.morphAll(shadowRoot);
+		}
 		this.created && this.created.call(instance, shadowRoot);
 		//
 		// replace the original element in DOM
@@ -248,6 +253,7 @@ scope.declarationFactory = {
 		this.applyHostStyles(declaration);
 		// evaluate components scripts
 		this.scripts(element, declaration);
+		//
 		console.groupEnd();
 	},
 	scripts: function(element, declaration) {
