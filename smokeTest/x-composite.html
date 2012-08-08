@@ -1,9 +1,12 @@
-<link rel="components" href="x-foo.html"/>
-<element name="x-bar" extends="x-foo" constructor="XBar">
-<template>
-	<shadow></shadow>
-	<div>Goodbye from x-bar.</div>
-</template>
-<script>
-</script>
+<element name="x-composite" constructor="XComposite">
+	<template>
+		I am made of an x-foo
+		<blockquote>
+			<x-foo></x-foo>
+		</blockquote>
+		... and an x-bar:
+		<blockquote>
+			<x-bar></x-bar>
+		</blockquote>
+	</template>
 </element>
