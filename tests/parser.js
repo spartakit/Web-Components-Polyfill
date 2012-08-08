@@ -1,3 +1,5 @@
+// FIXME: parser implementation should be refactored for easier test writing
+
 module('Parser', {
 	setup: function() {
 		var mockFactory = {
@@ -18,8 +20,11 @@ test('.parseElement calls declarationFactory.createDeclaration', function() {
 	this.oncreate = function() {
 		created = true;
 	};
-	polyfill.parser.parseElement(null);
-	this.oncreate = null;
+	try {
+		polyfill.parser.parseElement(null);
+	} finally {
+		this.oncreate = null;
+	}
 	ok(created);
 });
 
@@ -31,10 +36,28 @@ test('.parseElements creates a declaration for each <element>', function() {
 	this.oncreate = function() {
 		count++;
 	};
-	polyfill.parser.parseElements(mock);
-	this.oncreate = null;
+	try {
+		polyfill.parser.parseElements(mock);
+	} finally {
+		this.oncreate = null;
+	}
 	//
 	equal(count, 3);
+});
+
+test('.parseExternalScripts calls injectScriptElement for each external script in <element>', function() {
+	var mock = document.createElement("element");
+	mock.innerHTML = '<script src="faux.js"></script>';
+	//
+	var realInjectScriptElement = polyfill.parser.injectScriptElement;
+	polyfill.parser.injectScriptElement = function(inScript) {
+		ok(true);
+	};
+	try {
+		polyfill.parser.parseExternalScripts(mock);
+	} finally {
+		polyfill.parser.injectScriptElement = realInjectScriptElement;
+	}
 });
 
 /*

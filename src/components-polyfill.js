@@ -122,9 +122,6 @@ scope.Declaration.prototype = {
 						m.target.getAttribute(m.attributeName));
 				}.bind(this));
 			}.bind(this));
-
-			// TOOD: spec isn't clear if it's changes to the custom attribute
-			// or any attribute in the subtree.
 			observer.observe(shadowRoot.host, {
 				attributes: true,
 				attributeOldValue: true
@@ -379,12 +376,12 @@ scope.parser = {
 	parseExternalScripts: function(inDocument) {
 		if (inDocument != document) {
 			var head = document.querySelector("head");
-			$$(inDocument, 'script[src]').forEach(this.injectScriptTag);
+			$$(inDocument, 'script[src]').forEach(this.injectScriptElement);
 		}
 	},
 	// FIXME: only here so it can be stubbed for testing
 	// Instead, expose a 'utils' object on 'scope' for such things
-	injectScriptTag: function(inSrc) {
+	injectScriptElement: function(inSrc) {
 		// NOTE: will load asynchronously
 		var ss = document.createElement("script");
 		ss.src = s.getAttribute("src");
@@ -401,11 +398,8 @@ scope.parser = {
 };
 
 scope.webComponentsReady = function() {
-	// create the event
 	var e = document.createEvent('Event');
-	// define that the event name is `build`
 	e.initEvent('WebComponentsReady', true, true);
-	// elem is any element
 	window.document.body.dispatchEvent(e);
 };
 
