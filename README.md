@@ -15,6 +15,7 @@
 
 ## esoteric
 
+* Implemented *declarationRegistry*
 * Made document load synchronous for ease of implementation (**todo**: make async)
 * Support both `<x-foo>` and `<tag is="x-foo">` syntaxes
 * Renamed *element* property of Declaration to *archetype*.
