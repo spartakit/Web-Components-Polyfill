@@ -375,7 +375,6 @@ scope.parser = {
 	},
 	parseExternalScripts: function(inDocument) {
 		if (inDocument != document) {
-			var head = document.querySelector("head");
 			$$(inDocument, 'script[src]').forEach(this.injectScriptElement);
 		}
 	},
@@ -383,8 +382,9 @@ scope.parser = {
 	// Instead, expose a 'utils' object on 'scope' for such things
 	injectScriptElement: function(inSrc) {
 		// NOTE: will load asynchronously
+		var head = document.querySelector("head");
 		var ss = document.createElement("script");
-		ss.src = s.getAttribute("src");
+		ss.src = inSrc.getAttribute("src");
 		head.appendChild(ss);
 	},
 	parseElements: function(inDocument) {
