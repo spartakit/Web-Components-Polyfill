@@ -205,9 +205,14 @@ scope.declarationRegistry = {
 	},
 	morphAll: function(inNode) {
 		for (var n in this.registry) {
-			var d = this.registry[n];
-			forEach($$(inNode, d.archetype.name + ',[is=' + d.archetype.name + ']'), d.morph, d);
+			this.morph(inNode, this.registry[n]);
 		}
+	},
+	selector: function(inDeclaration) {
+		return inDeclaration.archetype.name + ',[is=' + inDeclaration.archetype.name + ']'	
+	},
+	morph: function(inNode, inDeclaration) {
+		$$(inNode, this.selector(inDeclaration)).forEach(inDeclaration.morph, inDeclaration);
 	}
 };
 
@@ -366,8 +371,8 @@ scope.loader = {
 scope.parser = {
 	parseDocument: function(inDocument) {
 		console.group(inDocument.name || inDocument.URL);
-		this.parseLinkedDocuments(inDocument);
 		this.parseExternalScripts(inDocument);
+		this.parseLinkedDocuments(inDocument);
 		this.parseElements(inDocument);
 		console.groupEnd();
 	},
@@ -386,12 +391,20 @@ scope.parser = {
 	},
 	// FIXME: only here so it can be stubbed for testing
 	// Instead, expose a 'utils' object on 'scope' for such things
-	injectScriptElement: function(inSrc) {
+	injectScriptElement: function(inScript) {
+		// Async implmentation
+		/*
 		// NOTE: will load asynchronously
 		var head = document.querySelector("head");
 		var ss = document.createElement("script");
-		ss.src = inSrc.getAttribute("src");
+		ss.src = inScript.getAttribute("src");
 		head.appendChild(ss);
+		*/
+		// Sync implmentation
+		// can't be used for x-domain scripts
+		var ss = document.createElement("script");
+		ss.textContent = scope.loader.loadUrl(inScript.getAttribute("src"));
+		document.body.appendChild(ss);
 	},
 	parseElements: function(inDocument) {
 		$$(inDocument, 'element').forEach(function(element) {
