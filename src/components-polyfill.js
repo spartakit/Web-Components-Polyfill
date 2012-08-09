@@ -108,6 +108,9 @@ scope.Declaration.prototype = {
 		var shadowRoot = this.createShadowRoot(instance, this.template);
 		// instantiate internal web components
 		if (shadowRoot) {
+			// support styling attributes
+		    shadowRoot.applyAuthorStyles = this.applyAuthorStyles;
+		    shadowRoot.resetStyleInheritance = this.resetStyleInheritance;
 			// note: potentially recursive
 			scope.declarationRegistry.morphAll(shadowRoot);
 		}
