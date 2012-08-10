@@ -104,6 +104,10 @@ scope.Declaration.prototype = {
 		// identify the new type (boo, can't fix tagName in general)
 		instance.setAttribute("is", this.archetype.name);
 		//
+		// NOTE: order of createShadowRoot, replaceChild, and instantiateTemplate
+		// specifically crafted (via black-box testing) to satisfy shadowDom and
+		// MDV implementations
+		//
 		if (this.template) {
 			// construct shadowRoot
 			var shadowRoot = this.createShadowRoot(instance);
