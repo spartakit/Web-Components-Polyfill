@@ -89,8 +89,8 @@ scope.Declaration.prototype = {
 		//FIXME: Add support for external js loading.
 	},
 	morph: function(element) {
-		console.group("morphing an", this.archetype.name)
 		// convert element to custom element
+		console.group("morphing an", this.archetype.name)
 		//
 		// generate an instance of our source component
 		var instance = document.createElement(this.archetype.extendsTagName);
@@ -104,23 +104,28 @@ scope.Declaration.prototype = {
 		// identify the new type (boo, can't fix tagName in general)
 		instance.setAttribute("is", this.archetype.name);
 		//
-		// construct shadowRoot
-		var shadowRoot = this.createShadowRoot(instance, this.template);
-		// instantiate internal web components
-		if (shadowRoot) {
-			// note: potentially recursive
-			scope.declarationRegistry.morphAll(shadowRoot);
+		if (this.template) {
+			// construct shadowRoot
+			var shadowRoot = this.createShadowRoot(instance);
 		}
-		this.created && this.created.call(instance, shadowRoot);
-		//
 		// replace the original element in DOM
 		if (element.parentNode) {
 			element.parentNode.replaceChild(instance, element);
-			this.inserted && this.inserted.call(instance, shadowRoot);
 		}
+		// instantiate template
+		if (shadowRoot) {
+			this.instantiateTemplate(shadowRoot, this.template);
+			// instantiate internal web components
+			// note: potentially recursive
+			scope.declarationRegistry.morphAll(shadowRoot);
+		}
+		// fire lifecycle events
+		this.created && this.created.call(instance, shadowRoot);
+		this.inserted && this.inserted.call(instance, shadowRoot);
 		//
+		// FIXME: only do once per custom inheritance chain
 		// Setup mutation observer for attribute changes
-		if (this.attributeChanged) {
+		if (shadowRoot && this.attributeChanged) {
 			var observer = new WebKitMutationObserver(function(mutations) {
 				mutations.forEach(function(m) {
 					this.attributeChanged(m.attributeName, m.oldValue,
@@ -152,25 +157,18 @@ scope.Declaration.prototype = {
 			});
 		}
 	},
-	createShadowRoot: function(element, template) {
-		if (template) {
-			var shadowRoot = new WebKitShadowRoot(element);
-			// NOTE: MDV chromium build implements this element so use it!
-			if (template instanceof HTMLTemplateElement) {
-				//console.log("Using native HTMLTemplateElement");
-				shadowRoot.appendChild(template.content.cloneNode(true));
-			} else {
-				forEach(this.template.childNodes, function(node) {
-					shadowRoot.appendChild(node.cloneNode(true));
-				});
-			}
-			// FIXME: .host not set automatically (spec says it is [?])
-			if (!shadowRoot.host) {
-				shadowRoot.host = element;
-			}
-			return shadowRoot;
+	createShadowRoot: function(element) {
+		var shadowRoot = new WebKitShadowRoot(element);
+		// FIXME: .host not set automatically (spec says it is [?])
+		if (!shadowRoot.host) {
+			shadowRoot.host = element;
 		}
+		return shadowRoot;
+	},
+	instantiateTemplate: function(shadowRoot, template) {
+		shadowRoot.appendChild(template.content.cloneNode(true));
 	}
+
 };
 
 scope.declarationRegistry = {
@@ -209,7 +207,7 @@ scope.declarationRegistry = {
 		}
 	},
 	selector: function(inDeclaration) {
-		return inDeclaration.archetype.name + ',[is=' + inDeclaration.archetype.name + ']'	
+		return inDeclaration.archetype.name + ',[is=' + inDeclaration.archetype.name + ']'
 	},
 	morph: function(inNode, inDeclaration) {
 		$$(inNode, this.selector(inDeclaration)).forEach(inDeclaration.morph, inDeclaration);
@@ -340,7 +338,7 @@ scope.loader = {
 		var urls = [];
 		forEach(inLinks, function(link) {
 			var href = link.getAttribute("href");
-			if (href) {	
+			if (href) {
 				anchor.href = href;
 				urls.push(anchor.href);
 			}
