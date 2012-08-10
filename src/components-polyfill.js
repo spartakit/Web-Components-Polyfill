@@ -107,6 +107,9 @@ scope.Declaration.prototype = {
 		if (this.template) {
 			// construct shadowRoot
 			var shadowRoot = this.createShadowRoot(instance);
+			// support styling attributes
+		    shadowRoot.applyAuthorStyles = this.applyAuthorStyles;
+		    shadowRoot.resetStyleInheritance = this.resetStyleInheritance;
 		}
 		// replace the original element in DOM
 		if (element.parentNode) {
