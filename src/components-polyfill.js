@@ -1,10 +1,10 @@
 (function(scope) {
 
-// NOTE: depends on 'window' and 'document' globals
+// NOTE: uses 'window' and 'document' globals
 
 scope = scope || {};
 
-if (!window.WebKitShadowRoot) {
+if (scope.__WEBKITSHADOWROOT__ && !window.WebKitShadowRoot) {
 	console.error('Shadow DOM support is required.');
 	return;
 }
@@ -21,6 +21,20 @@ var $$ = function(inElement, inSelector) {
 		forEach(nodes, inFunc, inScope);
 	}
 	return nodes;
+};
+
+function nop() {};
+
+// bind shim for iOs
+
+if (!Function.prototype.bind) {
+	console.warn("patching 'bind'");
+	Function.prototype.bind = function(scope) {
+		var _this = this;
+		return function() {
+			return _this.apply(scope, arguments);
+		}
+	}
 };
 
 // debuggable script injection
@@ -41,6 +55,147 @@ var inject = function(inScript, inContext, inName) {
 window.componentScript = function(inName, inFunc) {
 	scope.declarationRegistry.exec(inName, inFunc);
 };
+
+// xhr tools
+
+var makeDocument = function(inHtml, inName) {
+	var doc = document.implementation.createHTMLDocument();
+	doc.body.innerHTML = inHtml;
+	doc.name = inName;
+	return doc;
+};
+
+var xhr = {
+	ok: function(inRequest) {
+		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
+	},
+	load: function(url, next, context) {
+		var request = new XMLHttpRequest();
+		request.open('GET', url);
+		request.addEventListener('readystatechange', function(e) {
+			if (request.readyState === 4) {
+				next.call(context, !xhr.ok(request) && request, request.response);
+			}
+		});
+		request.send();
+	}
+};
+
+// caching parallel loader
+
+scope.loader = {
+	// caching
+	cache: {},
+	pending: {},
+	loadFromNode: function(inNode, inNext) {
+		var url = this.nodeUrl(inNode);
+		if (!this.cached(url, inNext)) {
+			this.request(url, inNext);
+		}
+	},
+	nodeUrl: function(inNode) {
+		return inNode.getAttribute("href") || inNode.getAttribute("src");
+	},
+	cached: function(inUrl, inNext) {
+		var data = this.cache[inUrl];
+		if (data !== undefined) {
+			if (data == this.pending) {
+				var p = data[inUrl] = data[inUrl] || [];
+				p.push(inNext);
+			} else {
+				console.log("(" + inUrl, "retrieved from cache)");
+				inNext(null, this.cache[inUrl], inUrl);
+			}
+		}
+	},
+	request: function(inUrl, inNext) {
+		this.cache[inUrl] = this.pending;
+		//
+		var onload = function(err, response) {
+			console.log("(" + inUrl, "loaded)");
+			this.cache[inUrl] = response;
+			inNext(err, response, inUrl);
+			this.resolvePending(inUrl);
+		};
+		//
+		xhr.load(inUrl, onload.bind(this));
+	},
+	resolvePending: function(inUrl) {
+		var p = this.pending[inUrl];
+		if (p) {
+			p.forEach(function(next) {
+				console.log("(" + inUrl, "retrieved from cache)");
+				next(err, response, inUrl);
+			});
+			this.pending[inUrl] = null;
+		}
+	},
+	// completion tracking
+	oncomplete: nop,
+	inflight: 0,
+	push: function() {
+		this.inflight++;
+	},
+	pop: function() {
+		if (--this.inflight == 0) {
+			this.oncomplete();
+		}
+	},
+	load: function(inNode, inNext) {
+		this.push();
+		this.loadFromNode(inNode, function(err, response) {
+			inNext(err, response);
+			this.pop();
+		}.bind(this));
+	},
+	// hook to store HTMLDocuments in cache
+	docs: {},
+	loadDocument: function(inNode, inNext) {
+		this.push();
+		this.loadFromNode(inNode, function(err, response, url) {
+			inNext(err, this.docs[url] = (this.docs[url] || makeDocument(response)));
+			this.pop();
+		}.bind(this));
+	},
+	fetchFromCache: function(inNode) {
+		var url = this.nodeUrl(inNode);
+		var data = this.docs[url] || this.cache[url];
+		if (data === undefined) {
+			console.error(url + " was not in cache");
+		}
+		return data;
+	}
+};
+
+// external web component resource preloader
+
+scope.componentLoader = {
+	_preload: function(inNode) {
+		$$(inNode, "link[rel=components]").forEach(function(n) {
+			scope.loader.loadDocument(n, function(err, response) {
+				if (!err) {
+					scope.componentLoader._preload(response);
+				}
+			});
+		});
+		if (inNode != document) {
+			$$(inNode, "link[rel=stylesheet],script[src]").forEach(function(n) {
+				scope.loader.load(n, nop);
+			});
+		}
+		if (!scope.loader.inflight) {
+			scope.loader.oncomplete();
+		}
+	},
+	preload: function(inDocument, inNext) {
+		scope.loader.oncomplete = inNext;
+		scope.componentLoader._preload(inDocument);
+	},
+	fetch: function(inNode) {
+		return scope.loader.fetchFromCache(inNode);
+	}
+};
+
 
 // HTMLElementElement
 
@@ -86,23 +241,39 @@ scope.Declaration.prototype = {
 	},
 	evalScript: function(script) {
 		inject(script, this.archetype, this.archetype.name);
-		//FIXME: Add support for external js loading.
 	},
-	morph: function(element) {
-		// convert element to custom element
-		console.group("morphing an", this.archetype.name)
-		//
+	morph: function(inElement) {
+		if (inElement.__morphed__) {
+			return inElement;
+		}
+		console.group("morphing: ", this.archetype.name);
+		// create a raw component instance
+		var instance = this.instance(inElement);
+		instance.__morphed__ = true;
+		// transplant attributes and content into the new instance
+		this.transplantNodeDecorations(inElement, instance);
+		// render the template
+		var shadowRoot = this.renderTemplate(instance, inElement);
+		// fire lifecycle events, setup observers
+		this.finalize(instance, shadowRoot);
+		// need to do this again as the user may have 'done stuff'
+		scope.declarationRegistry.morphAll(instance);
+		console.groupEnd();
+		// return the morphed element
+		return instance;
+	},
+	instance: function(inNode) {
 		// generate an instance of our source component
 		var instance = document.createElement(this.archetype.extendsTagName);
 		// link canonical instance prototype to our custom prototype
 		this.archetype.generatedConstructor.prototype.__proto__ = instance.__proto__;
 		// graft our enhanced prototype chain back onto instance
 		instance.__proto__ = this.archetype.generatedConstructor.prototype;
-		// transplant attributes and content into the new instance
-		this.transplantNodeDecorations(element, instance);
-		//
 		// identify the new type (boo, can't fix tagName in general)
 		instance.setAttribute("is", this.archetype.name);
+		return instance;
+	},
+	renderTemplate: function(instance, element) {
 		//
 		// NOTE: order of createShadowRoot, replaceChild, and instantiateTemplate
 		// specifically crafted (via black-box testing) to satisfy shadowDom and
@@ -126,16 +297,19 @@ scope.Declaration.prototype = {
 			// note: potentially recursive
 			scope.declarationRegistry.morphAll(shadowRoot);
 		}
+		return shadowRoot;
+	},
+	finalize: function(instance, shadowRoot) {
 		// fire lifecycle events
 		this.created && this.created.call(instance, shadowRoot);
 		this.inserted && this.inserted.call(instance, shadowRoot);
 		//
 		// FIXME: only do once per custom inheritance chain
 		// Setup mutation observer for attribute changes
-		if (shadowRoot && this.attributeChanged) {
+		if (shadowRoot && this.attributeChanged && window.WebKitMutationObserver) {
 			var observer = new WebKitMutationObserver(function(mutations) {
 				mutations.forEach(function(m) {
-					this.attributeChanged(m.attributeName, m.oldValue,
+					this.attributeChanged.call(instance, m.attributeName, m.oldValue,
 						m.target.getAttribute(m.attributeName));
 				}.bind(this));
 			}.bind(this));
@@ -144,9 +318,6 @@ scope.Declaration.prototype = {
 				attributeOldValue: true
 			});
 		}
-		//
-		console.groupEnd();
-		return instance;
 	},
 	transplantNodeDecorations: function(inSrc, inDst) {
 		forEach(inSrc.attributes, function(a) {
@@ -157,13 +328,30 @@ scope.Declaration.prototype = {
 		} else {
 			var n$ = [];
 			forEach(inSrc.children, function(n) {
-				n$.push(n);
+				if (!isTemplate(n)) {
+					n$.push(n);
+				}
 			});
 			forEach(n$, function(n) {
 				inDst.appendChild(n);
 			});
 		}
 	},
+	createShadowRoot: function(element) {
+		return scope.shadowImpl.createShadowRoot(element);
+	},
+	instantiateTemplate: function(shadowRoot, template) {
+		scope.shadowImpl.installDom(shadowRoot, template.content.cloneNode(true));
+	}
+
+};
+
+var isTemplate = function(inNode) {
+	return inNode.tagName == "TEMPLATE";
+}
+
+// works with actual ShadowDom
+scope.webkitShadowImpl = {
 	createShadowRoot: function(element) {
 		var shadowRoot = new WebKitShadowRoot(element);
 		// FIXME: .host not set automatically (spec says it is [?])
@@ -172,11 +360,54 @@ scope.Declaration.prototype = {
 		}
 		return shadowRoot;
 	},
-	instantiateTemplate: function(shadowRoot, template) {
-		shadowRoot.appendChild(template.content.cloneNode(true));
+	installDom: function(shadowRoot, dom) {
+		shadowRoot.appendChild(dom);
 	}
-
 };
+
+// custom implementation of shadow-dom without the shadow; i.e. content insertion
+scope.customShadowImpl = {
+	createShadowRoot: function(element) {
+		element.host = element;
+		return element;
+	},
+	installDom: function(shadowRoot, dom) {
+		// build a immutable list of template <content> elements
+		var c$ = [];
+		$$(dom, "content").forEach(function(content) {
+			c$.push(content)
+		});
+		// replace each <content> element with matching content
+		c$.forEach(function(content) {
+			//inNode.childParents.push(content.parentNode);
+			// build list of 'light dom' nodes that we will distribute
+			var n$ = [];
+			var slctr = content.getAttribute("select");
+			var nodes = slctr ? $$(shadowRoot, slctr) : shadowRoot.childNodes;
+			forEach(nodes, function(n) {
+				// simulate shadow dom
+				n.logicalParent = n.parentNode;
+				// filter out template nodes
+				if (!isTemplate(n)) {
+					n$.push(n);
+				}
+			});
+			// build a fragment from the selected nodes
+			var frag = document.createDocumentFragment();
+			n$.forEach(function(n) {
+				frag.appendChild(n);
+			});
+			// replace the content node with the fragment
+			content.parentNode.replaceChild(frag, content);
+		});
+		// if there is any unselected content, send it to the bit bucket
+		shadowRoot.innerHTML = '';
+		// the transformed dom
+		shadowRoot.appendChild(dom);
+	}
+};
+
+scope.shadowImpl = scope.__WEBKITSHADOWROOT__ ? scope.webkitShadowImpl : scope.customShadowImpl;
 
 scope.declarationRegistry = {
 	registry: {},
@@ -236,19 +467,19 @@ scope.declarationFactory = {
 		// require a name
 		var name = a('name');
 		if (!name) {
-			// FIXME: Make errors more friendly.
 			console.error('name attribute is required.');
 			return;
 		}
+		//
 		console.group("creating an", name, "declaration");
+		//
 		// instantiate a declaration
 		var declaration = new scope.Declaration({
 			name: name,
 			tagName: a('extends') || 'div',
-			template: element.querySelector('template'),
-			//constructorName: a('constructor'),
 			resetStyleInheritance: a("reset-style-inheritance"),
-			applyAuthorStyles: a("apply-author-styles")
+			applyAuthorStyles: a("apply-author-styles"),
+			template: this.normalizeTemplate(element.querySelector('template'))
 		});
 		// register the declaration so we can find it by name
 		scope.declarationRegistry.register(name, declaration);
@@ -266,6 +497,15 @@ scope.declarationFactory = {
 		//
 		console.groupEnd();
 	},
+	normalizeTemplate: function(inTemplate) {
+		if (inTemplate && !inTemplate.content) {
+			var c = inTemplate.content = document.createDocumentFragment();
+			while (inTemplate.childNodes.length) {
+				c.appendChild(inTemplate.childNodes[0]);
+			}
+		}
+		return inTemplate;
+	},
 	scripts: function(element, declaration) {
 		// accumulate all script content from the element declaration
 		var script = [];
@@ -281,17 +521,14 @@ scope.declarationFactory = {
 		var sheet = [];
 		if (declaration.template) {
 			console.group("sheets");
-			//var doc = declaration.template.content;
-			var doc = element;
-			forEach($$(doc, "link[rel=stylesheet]"), function(s) {
-				var href = s.getAttribute("href");
-				var styles = scope.loader.loadUrl(href);
-				console.log(href, styles);
+			forEach($$(element, "link[rel=stylesheet]"), function(s) {
+				var styles = scope.componentLoader.fetch(s);
 				sheet.push(styles);
 			});
 			if (sheet.length) {
 				console.log("sheets found (", sheet.length, "), injecting");
 				var style = document.createElement("style");
+				style.style.display = "none !important;";
 				style.innerHTML = sheet.join('');
 				declaration.template.content.appendChild(style);
 			}
@@ -328,51 +565,6 @@ scope.declarationFactory = {
 	}
 };
 
-// use for qualifying urls
-var anchor = document.createElement('a');
-
-// construct HTMLDocument from HTML
-var makeDocument = function(inHtml, inName) {
-	var doc = document.implementation.createHTMLDocument();
-	doc.body.innerHTML = inHtml;
-	doc.name = inName;
-	return doc;
-};
-
-scope.loader = {
-	// extract qualified urls from hrefs in <link rel="components" href="..."> tags
-	linksToUrls: function(inLinks) {
-		var urls = [];
-		forEach(inLinks, function(link) {
-			var href = link.getAttribute("href");
-			if (href) {
-				anchor.href = href;
-				urls.push(anchor.href);
-			}
-		});
-		return urls;
-	},
-	loadDocuments: function(inLinks) {
-		var html, doc, docs = [];
-		forEach(this.linksToUrls(inLinks), function(url) {
-			html = this.loadUrl(url);
-			if (html) {
-				docs.push(makeDocument(html, url));
-			}
-		}, this);
-		return docs;
-	},
-	ok: function(inRequest) {
-		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
-	},
-	loadUrl: function(url) {
-		var request = new XMLHttpRequest();
-		request.open('GET', url, false);
-		request.send();
-		return this.ok(request) ? request.response : '';
-	}
-};
-
 scope.parser = {
 	parseDocument: function(inDocument) {
 		console.group(inDocument.name || inDocument.URL);
@@ -382,9 +574,16 @@ scope.parser = {
 		console.groupEnd();
 	},
 	parseLinkedDocuments: function(inDocument) {
-		var docs = scope.loader.loadDocuments($$(inDocument, 'link[rel=components]'));
+		var docs = this.fetchDocuments($$(inDocument, 'link[rel=components]'));
 		// yield here when async
 		this.parseDocuments(docs);
+	},
+	fetchDocuments: function(inLinks) {
+		var docs = [];
+		forEach(inLinks, function(link) {
+			docs.push(scope.componentLoader.fetch(link));
+		});
+		return docs;
 	},
 	parseDocuments: function(inDocs) {
 		forEach(inDocs, this.parseDocument, this);
@@ -397,18 +596,8 @@ scope.parser = {
 	// FIXME: only here so it can be stubbed for testing
 	// Instead, expose a 'utils' object on 'scope' for such things
 	injectScriptElement: function(inScript) {
-		/*
-		// Async implmentation
-		// NOTE: will load asynchronously
-		var head = document.querySelector("head");
 		var ss = document.createElement("script");
-		ss.src = inScript.getAttribute("src");
-		head.appendChild(ss);
-		*/
-		// Sync implmentation
-		// can't be used for x-domain scripts
-		var ss = document.createElement("script");
-		ss.textContent = scope.loader.loadUrl(inScript.getAttribute("src"));
+		ss.textContent = scope.componentLoader.fetch(inScript);
 		document.body.appendChild(ss);
 	},
 	parseElements: function(inDocument) {
@@ -429,9 +618,11 @@ scope.webComponentsReady = function() {
 
 scope.ready = function() {
 	scope.declarationFactory.createHostSheet();
-	scope.parser.parseDocument(document);
-	scope.declarationRegistry.morphAll(document);
-	scope.webComponentsReady();
+	scope.componentLoader.preload(document, function() {
+		scope.parser.parseDocument(document);
+		scope.declarationRegistry.morphAll(document);
+		scope.webComponentsReady();
+	});
 };
 
 scope.run = function() {
@@ -441,7 +632,5 @@ scope.run = function() {
 if (!scope.runManually) {
 	scope.run();
 }
-
-function nop() {};
 
 })(window.__exported_components_polyfill_scope__);
