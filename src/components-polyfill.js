@@ -1,13 +1,14 @@
 (function(scope) {
 
+// NOTE: use attributes on the script tag for this file as directives
+
+// noshadow=""			use custom content insertion algorithm instead of WebkitShadowDom
+// export="[name]"		exports polyfill scope into window as 'name'
+
+
 // NOTE: uses 'window' and 'document' globals
 
 scope = scope || {};
-
-if (scope.__WEBKITSHADOWROOT__ && !window.WebKitShadowRoot) {
-	console.error('Shadow DOM support is required.');
-	return;
-}
 
 // missing DOM/JS API
 
@@ -36,6 +37,35 @@ if (!Function.prototype.bind) {
 		}
 	}
 };
+
+// directives
+
+var source = (function() {
+	var thisFile = "components-polyfill.js";
+	var source, s$ = $$(document, '[src]').forEach(function(s) {
+		if (s.getAttribute('src').slice(-thisFile.length) == thisFile) {
+			source = s;
+		}
+	});
+	return source || {getAttribute: nop};
+})();
+
+scope.flags = {
+	noShadow: Boolean(source.getAttribute("noshadow")),
+	exportAs: source.getAttribute("export")
+};
+console.log(scope.flags);
+
+if (scope.flags.exportAs) {
+	window[scope.flags.exportAs] = scope;
+}
+
+// requirement testing
+
+if (!scope.flags.noShadow && !window.WebKitShadowRoot) {
+	console.error('Shadow DOM support is required.');
+	return;
+}
 
 // debuggable script injection
 //
@@ -407,7 +437,7 @@ scope.customShadowImpl = {
 	}
 };
 
-scope.shadowImpl = scope.__WEBKITSHADOWROOT__ ? scope.webkitShadowImpl : scope.customShadowImpl;
+scope.shadowImpl = scope.flags.noShadow ? scope.customShadowImpl : scope.webkitShadowImpl;
 
 scope.declarationRegistry = {
 	registry: {},
