@@ -397,8 +397,8 @@ scope.parser = {
 	// FIXME: only here so it can be stubbed for testing
 	// Instead, expose a 'utils' object on 'scope' for such things
 	injectScriptElement: function(inScript) {
-		// Async implmentation
 		/*
+		// Async implmentation
 		// NOTE: will load asynchronously
 		var head = document.querySelector("head");
 		var ss = document.createElement("script");
