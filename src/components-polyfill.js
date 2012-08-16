@@ -16,6 +16,10 @@ var forEach = function(inArrayish, inFunc, inScope) {
 	Array.prototype.forEach.call(inArrayish, inFunc, inScope);
 };
 
+var $ = function(inElement, inSelector) {
+	return inElement.querySelector(inSelector);
+};
+
 var $$ = function(inElement, inSelector) {
 	var nodes = inElement.querySelectorAll(inSelector);
 	nodes.forEach = function(inFunc, inScope) {
@@ -278,8 +282,18 @@ scope.Declaration.prototype = {
 		}
 		console.group("morphing: ", this.archetype.name);
 		// create a raw component instance
-		var instance = this.instance(inElement);
-		instance.__morphed__ = true;
+		var instance = this.instance();
+		// polymorph here based on shadow dom support
+		if (scope.flags.noShadow) {
+			// any content inside this node is going to be shadow content
+			if (instance.childNodes.length) {
+				var shadow = document.createDocumentFragment();
+				while (instance.childNodes.length) {
+					shadow.appendChild(instance.childNodes[0]);
+				}
+				instance.shadow = shadow;
+			}
+		}
 		// transplant attributes and content into the new instance
 		this.transplantNodeDecorations(inElement, instance);
 		// render the template
@@ -292,7 +306,7 @@ scope.Declaration.prototype = {
 		// return the morphed element
 		return instance;
 	},
-	instance: function(inNode) {
+	instance: function() {
 		// generate an instance of our source component
 		var instance = document.createElement(this.archetype.extendsTagName);
 		// link canonical instance prototype to our custom prototype
@@ -301,6 +315,8 @@ scope.Declaration.prototype = {
 		instance.__proto__ = this.archetype.generatedConstructor.prototype;
 		// identify the new type (boo, can't fix tagName in general)
 		instance.setAttribute("is", this.archetype.name);
+		// flag this node as coming from polyfill
+		instance.__morphed__ = true;
 		return instance;
 	},
 	renderTemplate: function(instance, element) {
@@ -322,7 +338,7 @@ scope.Declaration.prototype = {
 		}
 		// instantiate template
 		if (shadowRoot) {
-			this.instantiateTemplate(shadowRoot, this.template);
+			this.instantiateTemplate(instance, shadowRoot, this.template);
 			// instantiate internal web components
 			// note: potentially recursive
 			scope.declarationRegistry.morphAll(shadowRoot);
@@ -370,8 +386,8 @@ scope.Declaration.prototype = {
 	createShadowRoot: function(element) {
 		return scope.shadowImpl.createShadowRoot(element);
 	},
-	instantiateTemplate: function(shadowRoot, template) {
-		scope.shadowImpl.installDom(shadowRoot, template.content.cloneNode(true));
+	instantiateTemplate: function(instance, shadowRoot, template) {
+		scope.shadowImpl.installDom(instance, shadowRoot, template.content.cloneNode(true));
 	}
 
 };
@@ -390,7 +406,7 @@ scope.webkitShadowImpl = {
 		}
 		return shadowRoot;
 	},
-	installDom: function(shadowRoot, dom) {
+	installDom: function(instance, shadowRoot, dom) {
 		shadowRoot.appendChild(dom);
 	}
 };
@@ -401,7 +417,7 @@ scope.customShadowImpl = {
 		element.host = element;
 		return element;
 	},
-	installDom: function(shadowRoot, dom) {
+	installDom: function(instance, shadowRoot, dom) {
 		// build a immutable list of template <content> elements
 		var c$ = [];
 		$$(dom, "content").forEach(function(content) {
@@ -430,6 +446,13 @@ scope.customShadowImpl = {
 			// replace the content node with the fragment
 			content.parentNode.replaceChild(frag, content);
 		});
+		// install shadow content to <shadow> node, if any
+		if (instance.shadow) {
+			var shadow = $(dom, "shadow");
+			if (shadow) {
+				shadow.parentNode.replaceChild(instance.shadow, shadow);
+			}
+		}
 		// if there is any unselected content, send it to the bit bucket
 		shadowRoot.innerHTML = '';
 		// the transformed dom
@@ -509,7 +532,7 @@ scope.declarationFactory = {
 			tagName: a('extends') || 'div',
 			resetStyleInheritance: a("reset-style-inheritance"),
 			applyAuthorStyles: a("apply-author-styles"),
-			template: this.normalizeTemplate(element.querySelector('template'))
+			template: this.normalizeTemplate($(element, 'template'))
 		});
 		// register the declaration so we can find it by name
 		scope.declarationRegistry.register(name, declaration);
