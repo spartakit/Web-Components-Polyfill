@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../src/components-polyfill.js" noshadow="true"></script>
+	<link rel="components" href="manifest.html"/>
+	<style>
+		body {
+			opacity: 0;
+			-webkit-transition: opacity 0.2s ease-in;
+		}
+	</style>
+	<script>
+		window.addEventListener("WebComponentsReady", function() {
+			document.body.style.opacity = 1;
+		});
+	</script>
+</head>
+<body>
+	Declarative x-bar (extends x-foo), say hello:
+	<x-bar></x-bar>
+</body>
+</html>
