@@ -187,6 +187,11 @@ scope.loader = {
 	// caching
 	cache: {},
 	pending: {},
+	log: function(inUrl, inMsg) {
+		var path = inUrl.split("/");
+		path = path.slice(-2);
+		console.log("..." + path.join("/"), inMsg);
+	},
 	loadFromNode: function(inNode, inNext) {
 		var url = this.nodeUrl(inNode);
 		if (!this.cached(url, inNext)) {
@@ -205,9 +210,10 @@ scope.loader = {
 				var p = data[inUrl] = data[inUrl] || [];
 				p.push(inNext);
 			} else {
-				console.log("(" + inUrl, "retrieved from cache)");
+				scope.loader.log(inUrl, "retrieved from cache");
 				inNext(null, this.cache[inUrl], inUrl);
 			}
+			return true;
 		}
 	},
 	request: function(inUrl, inNext) {
@@ -226,8 +232,8 @@ scope.loader = {
 		var p = this.pending[inUrl];
 		if (p) {
 			p.forEach(function(next) {
-				console.log("(" + inUrl, "retrieved from cache)");
-				next(err, response, inUrl);
+				scope.loader.log(inUrl, "retrieved from cache");
+				next(null, null, inUrl);
 			});
 			this.pending[inUrl] = null;
 		}
