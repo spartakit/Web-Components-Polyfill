@@ -145,7 +145,7 @@ scope.path = {
 	},
 	documentUrlFromNode: function(inNode) {
 		var n = inNode, p;
-		while (p = n.parentNode) {
+		while ((p = n.parentNode)) {
 			n = p;
 		}
 		return (n && (n.URL || n.name)) || "";
