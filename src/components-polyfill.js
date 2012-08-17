@@ -115,6 +115,71 @@ var xhr = {
 	}
 };
 
+// path conversion utilities
+
+scope.path = {
+	makeCssUrlsRelative: function(inCss, inBaseUrl) {
+		return inCss.replace(/url\([^)]*\)/g, function(inMatch) {
+			// find the url path, ignore quotes in url string
+			var urlPath = inMatch.replace(/["']/g, "").slice(4, -1);
+			urlPath = scope.path.resolveUrl(inBaseUrl, urlPath);
+			urlPath = scope.path.makeRelPath(document.URL, urlPath);
+		  return "url(" + urlPath + ")";
+		});
+	},
+	resolveUrl: function(inBaseUrl, inUrl) {
+		if (this.isAbsUrl(inUrl)) {
+			return inUrl;
+		}
+		var base = this.urlToPath(inBaseUrl);
+		return this.compressUrl(base + inUrl);
+	},
+	resolveNodeUrl: function(inNode, inRelativeUrl) {
+		var baseUrl = this.urlFromNode(inNode);
+		return this.resolveUrl(baseUrl, inRelativeUrl);
+	},
+	urlFromNode: function(inNode) {
+		var n = inNode, p;
+		while (p = n.parentNode) {
+			n = p;
+		}
+		return (n && (n.URL || n.name)) || "";
+	},
+	urlToPath: function(inBaseUrl) {
+		var parts = inBaseUrl.split("/");
+		parts.pop();
+		return parts.join("/") + "/";
+	},
+	isAbsUrl: function(inUrl) {
+		return /^data:/.test(inUrl) || /^http:/.test(inUrl);
+	},
+	compressUrl: function(inUrl) {
+		var parts = inUrl.split("/");
+		for (var i=0, p; i < parts.length; i++) {
+			p = parts[i];
+			if (p == "..") {
+				parts.splice(i-1, 2);
+				i -= 2;
+			}
+		}
+		return parts.join("/");
+	},
+	// make a relative path from source to target
+	makeRelPath: function(inSource, inTarget) {
+		var s, t;
+		s = this.compressUrl(inSource).split("/");
+		t = this.compressUrl(inTarget).split("/");
+		while (s.length && s[0] === t[0]){
+			s.shift();
+			t.shift();
+		}
+		for(var i = 0, l = s.length-1; i < l; i++) {
+			t.unshift("..");
+		}
+		return t.join("/");
+	}
+};
+
 // caching parallel loader
 
 scope.loader = {
@@ -128,7 +193,9 @@ scope.loader = {
 		}
 	},
 	nodeUrl: function(inNode) {
-		return inNode.getAttribute("href") || inNode.getAttribute("src");
+		var nodeUrl = inNode.getAttribute("href") || inNode.getAttribute("src");
+		var url = scope.path.resolveNodeUrl(inNode, nodeUrl);
+		return url;
 	},
 	cached: function(inUrl, inNext) {
 		var data = this.cache[inUrl];
@@ -187,7 +254,7 @@ scope.loader = {
 	loadDocument: function(inNode, inNext) {
 		this.push();
 		this.loadFromNode(inNode, function(err, response, url) {
-			inNext(err, this.docs[url] = (this.docs[url] || makeDocument(response)));
+			inNext(err, this.docs[url] = (this.docs[url] || makeDocument(response, url)));
 			this.pop();
 		}.bind(this));
 	},
@@ -543,6 +610,9 @@ scope.declarationFactory = {
 		}
 		// load component stylesheets
 		this.sheets(element, declaration);
+		//
+		// fix css urls...
+		this.adjustCssPaths(element, declaration);
 		// apply @host styles.
 		this.applyHostStyles(declaration);
 		// evaluate components scripts
@@ -568,6 +638,14 @@ scope.declarationFactory = {
 		// if there is any code, inject it
 		if (script.length) {
 			inject(script.join(';\n'), declaration.archetype, declaration.archetype.name);
+		}
+	},
+	adjustCssPaths: function(element, declaration) {
+		if (declaration.template) {
+			var baseUrl = scope.path.urlFromNode(element);
+			forEach($$(declaration.template.content, "style"), function(s) {
+				s.innerHTML = scope.path.makeCssUrlsRelative(s.innerHTML, baseUrl);
+			});
 		}
 	},
 	sheets: function(element, declaration) {
