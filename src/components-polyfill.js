@@ -117,7 +117,6 @@ var xhr = {
 };
 
 // path conversion utilities
-
 scope.path = {
 	makeCssUrlsRelative: function(inCss, inBaseUrl) {
 		return inCss.replace(/url\([^)]*\)/g, function(inMatch) {
@@ -125,8 +124,13 @@ scope.path = {
 			var urlPath = inMatch.replace(/["']/g, "").slice(4, -1);
 			urlPath = scope.path.resolveUrl(inBaseUrl, urlPath);
 			urlPath = scope.path.makeRelPath(document.URL, urlPath);
-		  return "url(" + urlPath + ")";
+			return "url(" + urlPath + ")";
 		});
+	},
+	nodeUrl: function(inNode) {
+		var nodeUrl = inNode.getAttribute("href") || inNode.getAttribute("src");
+		var url = scope.path.resolveNodeUrl(inNode, nodeUrl);
+		return url;
 	},
 	resolveUrl: function(inBaseUrl, inUrl) {
 		if (this.isAbsUrl(inUrl)) {
@@ -136,10 +140,10 @@ scope.path = {
 		return this.compressUrl(base + inUrl);
 	},
 	resolveNodeUrl: function(inNode, inRelativeUrl) {
-		var baseUrl = this.urlFromNode(inNode);
+		var baseUrl = this.documentUrlFromNode(inNode);
 		return this.resolveUrl(baseUrl, inRelativeUrl);
 	},
-	urlFromNode: function(inNode) {
+	documentUrlFromNode: function(inNode) {
 		var n = inNode, p;
 		while (p = n.parentNode) {
 			n = p;
@@ -188,15 +192,10 @@ scope.loader = {
 	cache: {},
 	pending: {},
 	loadFromNode: function(inNode, inNext) {
-		var url = this.nodeUrl(inNode);
+		var url = scope.path.nodeUrl(inNode);
 		if (!this.cached(url, inNext)) {
 			this.request(url, inNext);
 		}
-	},
-	nodeUrl: function(inNode) {
-		var nodeUrl = inNode.getAttribute("href") || inNode.getAttribute("src");
-		var url = scope.path.resolveNodeUrl(inNode, nodeUrl);
-		return url;
 	},
 	cached: function(inUrl, inNext) {
 		var data = this.cache[inUrl];
@@ -260,7 +259,7 @@ scope.loader = {
 		}.bind(this));
 	},
 	fetchFromCache: function(inNode) {
-		var url = this.nodeUrl(inNode);
+		var url = scope.path.nodeUrl(inNode);
 		var data = this.docs[url] || this.cache[url];
 		if (data === undefined) {
 			console.error(url + " was not in cache");
@@ -388,8 +387,8 @@ scope.Declaration.prototype = {
 			// construct shadowRoot
 			var shadowRoot = this.createShadowRoot(instance);
 			// support styling attributes
-		    shadowRoot.applyAuthorStyles = this.applyAuthorStyles;
-		    shadowRoot.resetStyleInheritance = this.resetStyleInheritance;
+			shadowRoot.applyAuthorStyles = this.applyAuthorStyles;
+			shadowRoot.resetStyleInheritance = this.resetStyleInheritance;
 		}
 		// replace the original element in DOM
 		if (element.parentNode) {
@@ -642,11 +641,11 @@ scope.declarationFactory = {
 		if (ctor) {
 			window[ctor] = declaration.archetype.generatedConstructor;
 		}
+		// fix css paths for inline style elements
+		this.adjustTemplateCssPaths(element, declaration);
 		// load component stylesheets
 		this.sheets(element, declaration);
 		//
-		// fix css urls...
-		this.adjustCssPaths(element, declaration);
 		// apply @host styles.
 		this.applyHostStyles(declaration);
 		// evaluate components scripts
@@ -674,11 +673,11 @@ scope.declarationFactory = {
 			inject(script.join(';\n'), declaration.archetype, declaration.archetype.name);
 		}
 	},
-	adjustCssPaths: function(element, declaration) {
+	adjustTemplateCssPaths: function(element, declaration) {
 		if (declaration.template) {
-			var baseUrl = scope.path.urlFromNode(element);
+			var docUrl = scope.path.documentUrlFromNode(element);
 			forEach($$(declaration.template.content, "style"), function(s) {
-				s.innerHTML = scope.path.makeCssUrlsRelative(s.innerHTML, baseUrl);
+				s.innerHTML = scope.path.makeCssUrlsRelative(s.innerHTML, docUrl);
 			});
 		}
 	},
@@ -688,6 +687,7 @@ scope.declarationFactory = {
 			console.group("sheets");
 			forEach($$(element, "link[rel=stylesheet]"), function(s) {
 				var styles = scope.componentLoader.fetch(s);
+				styles = scope.path.makeCssUrlsRelative(styles, scope.path.nodeUrl(s));
 				sheet.push(styles);
 			});
 			if (sheet.length) {
