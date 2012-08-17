@@ -152,7 +152,7 @@ scope.path = {
 		return parts.join("/") + "/";
 	},
 	isAbsUrl: function(inUrl) {
-		return /^data:/.test(inUrl) || /^http:/.test(inUrl);
+		return /^data:/.test(inUrl) || /^http[s]?:/.test(inUrl);
 	},
 	compressUrl: function(inUrl) {
 		var parts = inUrl.split("/");
