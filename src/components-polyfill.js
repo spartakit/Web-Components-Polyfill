@@ -4,7 +4,7 @@
 
 // noshadow=""			use custom content insertion algorithm instead of WebkitShadowDom
 // export="[name]"		exports polyfill scope into window as 'name'
-
+// clonemorph=""		morph nodes via cloning superclass node
 
 // NOTE: uses 'window' and 'document' globals
 
@@ -56,7 +56,8 @@ var source = (function() {
 
 scope.flags = {
 	noShadow: Boolean(source.getAttribute("noshadow")),
-	exportAs: source.getAttribute("export")
+	exportAs: source.getAttribute("export"),
+	cloneMorph: source.getAttribute("clonemorph")
 };
 console.log(scope.flags);
 
@@ -303,6 +304,7 @@ scope.componentLoader = {
 scope.HTMLElementElement = function(name, tagName, declaration) {
 	this.name = name;
 	this.extendsTagName = tagName;
+	// lifecycle method is on element, but executes in declaration scope
 	this.lifecycle = scope.Declaration.prototype.installLifecycle.bind(declaration);
 };
 
@@ -334,7 +336,7 @@ scope.Declaration.prototype = {
 		return extended;
 	},
 	installLifecycle: function(inMap) {
-		var lifecycleMethods = ["created", "inserted", "removed", "attributeChanged"];
+		var lifecycleMethods = ["created", "inserted", "removed", "attributeChanged", "key"];
 		lifecycleMethods.forEach(function(m) {
 			this[m] = inMap[m] || nop;
 		}, this);
@@ -349,20 +351,7 @@ scope.Declaration.prototype = {
 		}
 		console.group("morphing: ", this.archetype.name);
 		// create a raw component instance
-		var instance = this.instance();
-		// polymorph here based on shadow dom support
-		if (scope.flags.noShadow) {
-			// any content inside this node is going to be shadow content
-			if (instance.childNodes.length) {
-				var shadow = document.createDocumentFragment();
-				while (instance.childNodes.length) {
-					shadow.appendChild(instance.childNodes[0]);
-				}
-				instance.shadow = shadow;
-			}
-		}
-		// transplant attributes and content into the new instance
-		this.transplantNodeDecorations(inElement, instance);
+		var instance = this.instance(inElement);
 		// render the template
 		var shadowRoot = this.renderTemplate(instance, inElement);
 		// fire lifecycle events, setup observers
@@ -373,18 +362,21 @@ scope.Declaration.prototype = {
 		// return the morphed element
 		return instance;
 	},
-	instance: function() {
-		// generate an instance of our source component
-		var instance = document.createElement(this.archetype.extendsTagName);
-		// link canonical instance prototype to our custom prototype
-		this.archetype.generatedConstructor.prototype.__proto__ = instance.__proto__;
-		// graft our enhanced prototype chain back onto instance
-		instance.__proto__ = this.archetype.generatedConstructor.prototype;
-		// identify the new type (boo, can't fix tagName in general)
-		instance.setAttribute("is", this.archetype.name);
-		// flag this node as coming from polyfill
-		instance.__morphed__ = true;
-		return instance;
+	instance: function(inElement) {
+		return scope.morphImpl.instance.call(this, inElement);
+	},
+	captureShadow: function(inInstance) {
+		// polymorph here based on shadow dom support
+		if (scope.flags.noShadow) {
+			// any content inside this node is going to be shadow content
+			if (inInstance.childNodes.length) {
+				var shadow = document.createDocumentFragment();
+				while (inInstance.childNodes.length) {
+					shadow.appendChild(inInstance.childNodes[0]);
+				}
+			}
+			return shadow;
+		}
 	},
 	renderTemplate: function(instance, element) {
 		//
@@ -413,13 +405,15 @@ scope.Declaration.prototype = {
 		return shadowRoot;
 	},
 	finalize: function(instance, shadowRoot) {
+		// get protected member key
+		var declaration = scope.declarationRegistry.ancestor(this);
+		var key = declaration && declaration.key;
 		// fire lifecycle events
-		this.created && this.created.call(instance, shadowRoot);
+		this.created && this.created.call(instance, shadowRoot, key);
 		this.inserted && this.inserted.call(instance, shadowRoot);
-		//
-		// FIXME: only do once per custom inheritance chain
 		// Setup mutation observer for attribute changes
-		if (shadowRoot && this.attributeChanged && window.WebKitMutationObserver) {
+		if (!instance.__morphed__ && shadowRoot && this.attributeChanged && window.WebKitMutationObserver) {
+			console.log("attaching mutation observer to ", instance)
 			var observer = new WebKitMutationObserver(function(mutations) {
 				mutations.forEach(function(m) {
 					this.attributeChanged.call(instance, m.attributeName, m.oldValue,
@@ -431,6 +425,8 @@ scope.Declaration.prototype = {
 				attributeOldValue: true
 			});
 		}
+		// flag this node as coming from polyfill
+		instance.__morphed__ = true;
 	},
 	transplantNodeDecorations: function(inSrc, inDst) {
 		forEach(inSrc.attributes, function(a) {
@@ -458,6 +454,52 @@ scope.Declaration.prototype = {
 	}
 
 };
+
+// morph an x-foo in-place
+scope.morphInPlaceImpl = {
+	instance: function(inElement) {
+		// generate an instance of our source component
+		var instance = document.createElement(this.archetype.extendsTagName);
+		// capture inherited content
+		var shadow = this.captureShadow(instance);
+		if (shadow) {
+			instance.shadow = shadow;
+		}
+		// link canonical instance prototype to our custom prototype
+		this.archetype.generatedConstructor.prototype.__proto__ = instance;
+		// graft our enhanced prototype chain back onto our element
+		inElement.__proto__ = this.archetype.generatedConstructor.prototype;
+		// identify the new type for compatibility with the other impl
+		inElement.setAttribute("is", this.archetype.name);
+		// return the instance
+		return inElement;
+	}
+};
+
+// morph an x-foo by creating a new element and copying onto it
+scope.morphInstanceImpl = {
+	instance: function(inElement) {
+		// generate an instance of our source component
+		var instance = document.createElement(this.archetype.extendsTagName);
+		// capture inherited content
+		var shadow = this.captureShadow(instance);
+		if (shadow) {
+			inElement.shadow = shadow;
+		}
+		// transplant attributes and content into the new instance
+		this.transplantNodeDecorations(inElement, instance);
+		// link canonical instance prototype to our custom prototype
+		this.archetype.generatedConstructor.prototype.__proto__ = instance.__proto__;
+		// graft our enhanced prototype chain back onto instance
+		instance.__proto__ = this.archetype.generatedConstructor.prototype;
+		// identify the new type (boo, can't fix tagName in general)
+		instance.setAttribute("is", this.archetype.name);
+		// return the instance
+		return instance;
+	}
+};
+
+scope.morphImpl = scope.flags.cloneMorph ? scope.morphInstanceImpl : scope.morphInPlaceImpl;
 
 var isTemplate = function(inNode) {
 	return inNode.tagName == "TEMPLATE";
@@ -534,16 +576,8 @@ scope.declarationRegistry = {
 	register: function(name, declaration) {
 		this.registry[name] = declaration;
 	},
-	ancestors: function(inDeclaration) {
-		var results = [];
-		var d = inDeclaration;
-		while (d) {
-			d = this.registry[d.archetype.extendsTagName];
-			if (d) {
-				results.unshift(d);
-			}
-		}
-		return results;
+	ancestor: function(inDeclaration) {
+		return this.registry[inDeclaration.archetype.extendsTagName];
 	},
 	// invoke inFunc in the context of inName's archetype
 	exec: function(inName, inFunc) {
@@ -675,7 +709,7 @@ scope.declarationFactory = {
 				var matches = s.innerHTML.match(this.hostRe);
 				if (matches) {
 					matches.forEach(function(m) {
-						var s = m.replace("@host", "[is=" + declaration.archetype.name + "]");
+						var s = m.replace("@host", declaration.archetype.name + ", [is=" + declaration.archetype.name + "]");
 						var n = document.createTextNode(s);
 						this.hostSheet.appendChild(n);
 					}, this);
