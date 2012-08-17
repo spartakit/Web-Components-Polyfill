@@ -55,9 +55,9 @@ var source = (function() {
 })();
 
 scope.flags = {
-	noShadow: Boolean(source.getAttribute("noshadow")),
-	exportAs: source.getAttribute("export"),
-	cloneMorph: source.getAttribute("clonemorph")
+	noShadow: source.hasAttribute("noshadow"),
+	cloneMorph: source.hasAttribute("clonemorph"),
+	exportAs: source.getAttribute("export")
 };
 console.log(scope.flags);
 
