@@ -709,22 +709,32 @@ scope.declarationFactory = {
 			console.groupEnd();
 		}
 	},
-	hostRe:/@host[^{]*({[^{]*})/gim,
+	hostRe:/(@host[^{]*)({[^{]*})/gim,
 	applyHostStyles: function(declaration) {
 		// strategy: apply a rule for each @host rule with @host replaced with the component name
 		// into a stylesheet added at the top of head (so it's least specific)
 		if (declaration.template) {
 			forEach($$(declaration.template.content, "style"), function(s) {
-				var matches = s.innerHTML.match(this.hostRe);
-				if (matches) {
-					matches.forEach(function(m) {
-						var s = m.replace("@host", declaration.archetype.name + ", [is=" + declaration.archetype.name + "]");
-						var n = document.createTextNode(s);
-						this.hostSheet.appendChild(n);
-					}, this);
+				var matches, rule;
+				while(matches = this.hostRe.exec(s.innerHTML)) {
+					rule = this.convertHostRules(matches[1], declaration) + " " + matches[2];
+					this.hostSheet.appendChild(document.createTextNode(rule));
 				}
 			}, this);
 		}
+	},
+	// convert e.g. @host to x-foo, [is=x-foo]
+	convertHostRules: function(selectors, declaration) {
+		var o=[], parts = selectors.split(","), name = declaration.archetype.name;
+		var h = "@host";
+		parts.forEach(function(p) {
+			if (p.indexOf(h) >= 0) {
+				var r = p.trim();
+				o.push(r.replace(h, name));
+				o.push(r.replace(h, "[is=" + name + "]"));
+			}
+		});
+		return o.join(", ");
 	},
 	// support for creating @host rules
 	createHostSheet: function() {
