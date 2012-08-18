@@ -417,7 +417,10 @@ scope.Declaration.prototype = {
 		this.created && this.created.call(instance, shadowRoot, key);
 		this.inserted && this.inserted.call(instance, shadowRoot);
 		// Setup mutation observer for attribute changes
-		if (!instance.__morphed__ && shadowRoot && this.attributeChanged && window.WebKitMutationObserver) {
+		// NOTE: Consider a design change here: for a given instance we attach 
+		// this observer for each component in the extension change. This is necessary
+		// because attributeChanged is stored in the declaration lifecycle.
+		if (shadowRoot && this.attributeChanged && window.WebKitMutationObserver) {
 			console.log("attaching mutation observer to ", instance)
 			var observer = new WebKitMutationObserver(function(mutations) {
 				mutations.forEach(function(m) {
