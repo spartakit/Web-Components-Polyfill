@@ -420,7 +420,7 @@ scope.Declaration.prototype = {
 		// NOTE: Consider a design change here: for a given instance we attach 
 		// this observer for each component in the extension change. This is necessary
 		// because attributeChanged is stored in the declaration lifecycle.
-		if (shadowRoot && this.attributeChanged && window.WebKitMutationObserver) {
+		if (this.attributeChanged && window.WebKitMutationObserver) {
 			console.log("attaching mutation observer to ", instance)
 			var observer = new WebKitMutationObserver(function(mutations) {
 				mutations.forEach(function(m) {
@@ -428,7 +428,7 @@ scope.Declaration.prototype = {
 						m.target.getAttribute(m.attributeName));
 				}.bind(this));
 			}.bind(this));
-			observer.observe(shadowRoot.host, {
+			observer.observe(instance, {
 				attributes: true,
 				attributeOldValue: true
 			});
