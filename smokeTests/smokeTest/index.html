@@ -19,22 +19,36 @@
 </head>
 <body>
 	<div>Check Console</div>
+	
 	<hr/>
+	
 	Declarative x-foo, say hello:
 	<x-foo></x-foo>
+	
+	<hr/>
+
 	Imperative x-foo, say hello:
 	<script>
 		document.body.appendChild(document.createElement("x-foo"));
 	</script>
+	
+	<hr/>
+	
 	Declarative is="x-foo", say hello:
 	<div is="x-foo"></div>
+	
 	<hr/>
+	
 	x-image:
 	<x-image src="http://www.google.com/logos/2012/javelin-2012-hp.jpg"></x-image>
+	
 	<hr/>
+	
 	Declarative x-bar (extends x-foo), say hello:
 	<x-bar></x-bar>
+	
 	<hr/>
+	
 	Declarative x-composite
 	<x-composite></x-composite>
 </body>

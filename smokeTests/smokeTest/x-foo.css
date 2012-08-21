@@ -2,9 +2,11 @@
 	font-family: arial;
 	font-size: large;
 	font-weight: bold;
-	margin-left: 96px;
+	xmargin-left: 96px;
 	color: blue;
+	display: block;
 }
+
 .magenta {
 	color: magenta;
 }

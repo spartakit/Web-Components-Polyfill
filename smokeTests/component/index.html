@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../../src/components-polyfill.js" noshadow clonemorph></script>
+	<link rel="components" href="x-foo.html" />
+	<style>
+		x-zot {
+			display: block;
+			padding: 8px;
+			background-color: #E0F0FF;
+		}
+	</style>
+</head>
+<body>
+	<x-foo>[Beluga]</x-foo>
+
+	<hr/>
+	<x-foo>[Beluga]</x-foo>
+	
+	<hr/>
+	<x-hasfoo>[Hasfoo]</x-hasfoo>
+
+	<hr/>
+	<x-bar>[Bar]</x-bar>
+	
+	<hr/>
+	<x-zot><span>Zot-Span</span>[Zot]</x-zot>
+	
+	<script>
+		addEventListener("WebComponentsReady", function() {
+			//
+			// NOTE: lightdom effects are asynchronous in mutation-driven components
+			//
+			var foo = $("x-foo");
+			foo.lightdom.innerHTML = "foo"; 
+			foo.lightdom.appendChild(document.createElement("input"));
+			//
+			var hasfoo = $("x-hasfoo");
+			hasfoo.lightdom.innerHTML = "foo"; 
+			hasfoo.lightdom.appendChild(document.createElement("input"));
+			//
+			var bar = $("x-bar");
+			bar.munge();
+			//
+			var pre = document.createElement("pre");
+			pre.textContent = "Zot's lightdom:\n" + $("x-zot").lightdom.innerHTML;
+			document.body.appendChild(pre);
+		});
+	</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="../../src/components-polyfill.js" noshadow clonemorph></script>
+	<link rel="components" href="x-components.html" />
+	<style>
+		body {
+			xfont-family: Arial;
+		}
+		p {
+			color: gray;
+			font-style: italic;
+		}
+		dom {
+			display: inline-block;
+			white-space: prewrap;
+			background-color: #E8F8FF;
+			color: black;
+			padding: 8px;
+			font-family: Courier New, monospace;
+			font-size: 9pt;
+		}
+		button {
+			font-size: 10pt;
+			padding: 6px;
+		}
+		x-zot {
+			display: block;
+			padding: 8px;
+		}
+	</style>
+</head>
+<body>
+	<script>
+		showLightDom = function(inWhere, inWho) {
+			$(inWhere).textContent = $(inWho).lightdom.innerHTML;
+		};
+	</script>
+	
+	<div>
+		<p>x-foo wraps its content in brackets:</p>
+		<x-foo>Foo Content</x-foo>
+		<p>x-foo's light dom:</p>
+		<dom id="foo-ld"></dom>
+	</div>
+	
+	<div>
+		<p>x-foo is dynamic, we can alter it's light-dom at will (we are simulating
+		shadowDom, so we surface x-foo's lightdom as a property):</p>
+		<button onclick='$("x-foo").lightdom.appendChild(document.createTextNode(" moar foo")); showLightDom("#foo-ld", "x-foo");'>$("x-foo").lightdom.appendChild(document.createTextNode(" moar foo ")</button>
+	</div>
+
+	<hr/>
+	<div>
+		<p>x-hasfoo composes smiley faces around an x-foo:</p>
+		<x-hasfoo>Hasfoo Content</x-hasfoo>
+		<p>x-hasfoo's light dom:</p>
+		<dom id="hasfoo-ld"></dom>
+	</div>
+	
+	<hr/>
+	<div>
+		<p>x-bar inherits from x-foo, <b>&ltshadow&gt</b> tag is used to surface x-foo's template:</p>
+		<x-bar>Bar Content</x-bar>
+		<p>x-bar's light dom:</p>
+		<dom id="bar-ld"></dom>
+	</div>
+
+	<hr/>
+	<div>
+		<p>x-zot inherits from x-bar, <b>&ltshadow&gt</b> tag is used to surface x-bar's template,
+		which in turn surfaces x-foo's template. x-zot selectively inserts &lt;span&gt; content 
+		before surfacing x-bar, and inserts an remaining content after (empty, as x-bar consumes
+		the leftovers):</p>
+		<x-zot><span>Zot Span</span>Zot Content</x-zot>
+		<p>x-zot's light dom:</p>
+		<dom id="zot-ld"></dom>
+	</div>
+	
+	<hr/>
+	<div>
+		<p>x-public exports a method to it's node:</p>
+		<x-public>Public Content</x-public>
+		<p>x-public's light dom:</p>
+		<dom id="public-ld"></dom>
+		<p>invoke x-public's 'moar' method:</p>
+		<button onclick='$("x-public").moar(); showLightDom("#public-ld", "x-public");'>$("x-public").moar()</button>
+	</div>
+	
+	<hr/>
+	<div>
+		<p>x-methods extends x-public and overrides 'moar' so it uses a protected method 'doMoar':</p>
+		<x-methods>Methods Content</x-methods>
+		<p>x-methods' light dom:</p>
+		<dom id="methods-ld"></dom>
+		<p>invoke x-methods' 'moar' method:</p>
+		<button onclick='$("x-methods").moar(); showLightDom("#methods-ld", "x-methods");'>$("x-methods").moar()</button>
+		<p>attempt to invoke x-methods' protected 'doMoar' method (will throw an exception):</p>
+		<button onclick='$("x-methods").doMoar();'>$("x-methods").doMoar()</button>
+	</div>
+	
+	<script>
+		addEventListener("WebComponentsReady", function() {
+			showLightDom("#foo-ld", "x-foo");
+			showLightDom("#hasfoo-ld", "x-hasfoo");
+			showLightDom("#bar-ld", "x-bar");
+			showLightDom("#zot-ld", "x-zot");
+			showLightDom("#public-ld", "x-public");
+			showLightDom("#methods-ld", "x-methods");
+			//
+			// NOTE: lightdom effects are asynchronous in mutation-driven components
+			//
+			/*
+			var foo = $("x-foo");
+			foo.lightdom.innerHTML = "foo"; 
+			foo.lightdom.appendChild(document.createElement("input"));
+			//
+			var hasfoo = $("x-hasfoo");
+			hasfoo.lightdom.innerHTML = "foo"; 
+			hasfoo.lightdom.appendChild(document.createElement("input"));
+			//
+			var bar = $("x-bar");
+			bar.munge();
+			//
+			var pre = document.createElement("pre");
+			pre.textContent = "Zot's lightdom:\n" + $("x-zot").lightdom.innerHTML;
+			document.body.appendChild(pre);
+			*/
+		});
+	</script>
+</body>
+</html>

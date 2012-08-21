@@ -5,6 +5,10 @@ var forEach = function(inArrayish, inFunc, inScope) {
 };
 
 var $ = function(inElement, inSelector) {
+	if (arguments.length == 1) {
+		inSelector = inElement;
+		inElement = document;
+	}
 	return inElement.querySelector(inSelector);
 };
 
@@ -14,6 +18,17 @@ var $$ = function(inElement, inSelector) {
 		forEach(nodes, inFunc, inScope);
 	}
 	return nodes;
+};
+
+createDom = function(inTagOrNode, inHtml, inAttrs) {
+	var dom = (typeof inTagOrNode == "string") ? document.createElement(inTagOrNode) : inTagOrNode.cloneNode(true);
+	dom.innerHTML = inHtml;
+	if (inAttrs) {
+		for (var n in inAttrs) {
+			dom.setAttribute(n, inAttrs[n]);
+		}
+	}
+	return dom;
 };
 
 function nop() {};

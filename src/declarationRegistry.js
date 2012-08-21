@@ -31,15 +31,13 @@ scope.declarationRegistry = {
 			this.morph(inNode, this.registry[n]);
 		}
 	},
-	selector: function(inDeclaration) {
-		return inDeclaration.archetype.name + ',[is=' + inDeclaration.archetype.name + ']'
-	},
 	morph: function(inNode, inDeclaration) {
 		$$(inNode, this.selector(inDeclaration)).forEach(inDeclaration.morph, inDeclaration);
+	},
+	selector: function(inDeclaration) {
+		return inDeclaration.archetype.name + ',[is=' + inDeclaration.archetype.name + ']'
 	}
 };
-
-//var domCreateElement = document.createElement.bind(document);
 
 // allow document.createElement to delegate to declarationRegistry
 document.createElement = function(inTag) {

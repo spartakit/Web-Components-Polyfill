@@ -3,7 +3,6 @@
 // NOTE: use attributes on the script tag for this file as directives
 
 // noshadow=""			use custom content insertion algorithm instead of WebkitShadowDom
-// export="[name]"		exports polyfill scope into window as 'name'
 // clonemorph=""		morph nodes via cloning superclass node
 
 // NOTE: uses 'window' and 'document' globals
@@ -44,11 +43,16 @@ scope.declarationFactory = {
 		this.adjustTemplateCssPaths(element, declaration);
 		// load component stylesheets
 		this.sheets(element, declaration);
-		//
 		// apply @host styles.
 		this.applyHostStyles(declaration);
 		// evaluate components scripts
 		this.scripts(element, declaration);
+		// expand components in our template
+		if (declaration.template) {
+			scope.declarationRegistry.morphAll(declaration.template.content);
+		}
+		// after scripts, our constructor should be ready
+		declaration.finalize();
 		//
 		console.groupEnd();
 	},

@@ -48,6 +48,8 @@ var require = function(inSrc) {
 	"url.js",
 	"loader.js",
 	"inject.js",
+	"customShadow.js",
+	"component.js",
 	"HTMLElementElement.js",
 	"Declaration.js",
 	"declarationRegistry.js",
