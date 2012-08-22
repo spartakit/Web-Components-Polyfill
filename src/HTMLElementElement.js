@@ -7,6 +7,8 @@ scope = scope || {};
 scope.HTMLElementElement = function(name, tagName, declaration) {
 	this.name = name;
 	this.extendsTagName = tagName;
+	// lifecycle method is on element, but executes in declaration scope
+	this.lifecycle = declaration.exportLifecycleMethod();
 };
 
 scope.HTMLElementElement.prototype = {

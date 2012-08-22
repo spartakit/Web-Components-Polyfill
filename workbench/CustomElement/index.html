@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<script src="../lang.js"></script>
+		<script src="HtmlElementElement.js"></script>
+		<script src="Declaration.js"></script>
+		<script src="declarationRegistry.js"></script>
+	</head>
+	<body>
+		<script>
+			Class = function(inBase, inProto) {
+				var ctor = function() {};
+				if (inBase) {
+					if (inProto) {
+						inProto.__proto__ = inBase.prototype;
+					} else {
+						inProto = inBase;
+					}
+				}
+				if (inProto) {
+					ctor.prototype = inProto;
+				}
+				return ctor;
+			};
+		</script>
+		<script>
+			XFooImpl = Class(null, {
+				orangate: function() {
+					this.style.backgroundColor = "orange";
+				}
+			});
+			XFoo = document.register("x-foo", XFooImpl, {
+				lifecycle: {
+					created: function(inRoot) {
+					},
+					key: Math.random()
+				}
+			});
+			//
+			XBarImpl = Class(null, null);
+			XBar = document.register("x-bar", XBarImpl, {
+				extendsName: "x-foo",
+				lifecycle: {
+					created: function(inRoot, inKey) {
+						console.log(inKey);
+					}
+				}
+			});
+			//
+			XBazImpl = Class(null, null);
+			bazTemplate = document.createElement("template");
+			bazTemplate.content.innerHTML = "[BAZ]<content></content>[BAZ]";
+			XBaz = document.register("x-baz", XBazImpl, {
+				extendsName: "x-foo",
+				template: bazTemplate,
+				lifecycle: {
+					created: function(inRoot, inKey) {
+						// need a way to call superclass 'created'
+					}
+				}
+			});
+		</script>
+		<script>
+			var foo = document.createElement("x-foo");
+			foo.lightdom.innerHTML = "x-foo";
+			foo.render();
+			document.body.appendChild(foo);
+			//
+			var bar = document.createElement("x-bar");
+			bar.lightdom.innerHTML = "x-bar";
+			bar.render();
+			document.body.appendChild(bar);
+			//
+			var baz = document.createElement("x-baz");
+			baz.lightdom.innerHTML = "x-baz";
+			baz.render();
+			document.body.appendChild(baz);
+		</script>
+	</body>
+</html>

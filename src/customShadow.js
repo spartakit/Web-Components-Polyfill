@@ -49,7 +49,7 @@ customShadowImpl = {
 			content.parentNode.replaceChild(frag, content);
 		});
 		// if there is any unselected content, send it to the bit bucket
-		target.innerHTML = '';
+		target.textContent = '';
 		// the transformed dom
 		target.appendChild(template);
 	},

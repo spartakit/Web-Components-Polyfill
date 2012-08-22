@@ -5,15 +5,9 @@
 scope = scope || {};
 
 // NOTE: uses scope.flags
-
+//
 // noshadow=""			use custom content insertion algorithm instead of WebkitShadowDom
 // clonemorph=""		morph nodes via cloning superclass node
-
-// allow document.createElement to delegate to declarationRegistry
-var domCreateElement = document.createElement.bind(document);
-document.createElement = function(inTag) {
-	return scope.declarationRegistry.make(inTag) || domCreateElement(inTag);
-};
 
 // Declaration
 
@@ -44,16 +38,14 @@ scope.Declaration.prototype = {
 			var baseComponent = ancestor.component;
 		}
 		console.log("extends:", this.archetype.extendsTagName, ", base tag:", this.baseTag);
-		// morph template wc's
-		if (this.template) {
-		//	scope.declarationRegistry.morphAll(this.template.content);
-		}
 		// generate the component
 		this.component = scope.component.declare(baseComponent);
 		console.log("component: ", this.component.prototype);
 	},
 	create: function() {
 		return new (this.component)();
+		// use the 'real' createElement, not any instance override
+		//return declaration.morph(document.__proto__.createElement.call(document, declaration.archetype.name));
 	},
 	morph: function(inElement) {
 		// subvert the constructor
@@ -65,11 +57,7 @@ scope.Declaration.prototype = {
 	generateConstructor: function() {
 		var declaration = this;
 		var ctor = function() {
-			var instance = declaration.create();
-			console.log("instance from constructor: ", instance);
-			return instance;
-			// use the 'real' createElement, not any instance override
-			//return declaration.morph(document.__proto__.createElement.call(document, declaration.archetype.name));
+			return declaration.create();
 		};
 		return ctor;
 	},
@@ -81,6 +69,9 @@ scope.Declaration.prototype = {
 		this.component.prototype = ap;
 		// attach template
 		ap.template = this.template;
+	},
+	exportLifecycleMethod: function() {
+		return this.installLifecycle.bind(this);
 	}
 };
 

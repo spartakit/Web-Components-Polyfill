@@ -28,16 +28,9 @@ defaultBase.prototype = {
 	},
 	initialize: function(inNode) {
 		this.node = inNode;
-		//
 		this.lightdom = this.node.cloneNode(true);
-		//
 		this.node.lightdom = this.lightdom;
-		this.xport();
-		//
-		//if (this.template) {
-		//	scope.declarationRegistry.morphAll(this.template.content);
-		//}
-		//
+		this.xport()
 		this.observe();
 		this.render();
 	},
