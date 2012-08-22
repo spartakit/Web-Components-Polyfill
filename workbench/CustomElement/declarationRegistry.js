@@ -1,9 +1,10 @@
 declarationRegistry = {
 	registry: {},
 	register: function(inName, inClass, inOptions) {
+		var opts = inOptions || nob;
 		// options: extendsName, template, lifecycle
-		var decl = new Declaration(inName, inOptions.extendsName, inOptions.template);
-		decl.imperatively(inClass, inOptions.lifecycle);
+		var decl = new Declaration(inName, opts.extendsName, opts.template);
+		decl.imperatively(inClass, opts.lifecycle);
 		declarationRegistry.registry[inName] = decl;
 		return decl.generatedConstructor;
 	},

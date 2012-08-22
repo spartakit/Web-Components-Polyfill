@@ -28,17 +28,20 @@ var source, base = "";
 	source = source || {getAttribute: nop};
 })();
 
-scope.flags = {
+var flags = {
 	noShadow: source.hasAttribute("noshadow"),
 	cloneMorph: source.hasAttribute("clonemorph"),
 	exportAs: source.getAttribute("export")
 };
-console.log(scope.flags);
+console.log(flags);
 
-if (scope.flags.exportAs) {
-	window[scope.flags.exportAs] = scope;
+if (flags.exportAs) {
+	window[flags.exportAs] = scope;
 }
+
 window.__exported_components_polyfill_scope__ = scope;
+
+scope.flags = flags;
 
 var require = function(inSrc) {
 	document.write('<script src="' + base + inSrc + '"></script>');
