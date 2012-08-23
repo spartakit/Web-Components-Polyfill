@@ -8,10 +8,12 @@
 		</script>
 		<script src="../lang.js"></script>
 		<script src="loader.js"></script>
+		<link rel="components" href="mock/mock-components.html"/>
 	</head>
 	<body>
 		<script>
 			componentLoader.preload(document, function() {
+				console.log("finished");
 				//parser.parseDocument(document);
 				//declarationRegistry.morphAll(document);
 				//webComponentsReady();
