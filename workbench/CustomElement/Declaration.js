@@ -68,25 +68,20 @@ Declaration.prototype = {
 	createShadowDom: function(inNode) {
 		return shadowImpl.createShadow(inNode, this);
 	},
-	/*
-	render: function(inNode) {
-		shadowImpl.installDom(inNode, this);
-	},
-	*/
-	invoke: function(inMethod, inInstance, inArgs) {
-		return inMethod && inMethod.apply(inInstance, inArgs);
+	invoke: function(inMethodName, inInstance, inArgs) {
+		return inheritanceImpl.invoke.call(this, inMethodName, inInstance, inArgs);
 	},
 	created: function(inInstance, inShadow) {
-		this.key = this.invoke(this.lifecycle.created, inInstance,
+		this.key = this.invoke("created", inInstance,
 			[inShadow, this.ancestor.lifecycle && this.ancestor.lifecycle.key]);
 	},
 	// TODO: find a way to discover if we are inserted
 	inserted: function(inInstance) {
-		this.invoke(this.lifecycle.created, inInstance);
+		this.invoke("inserted", inInstance);
 	},
 	// TODO: find a way to discover if we are removed
 	removed: function(inInstance) {
-		this.invoke(this.lifecycle.removed, inInstance);
+		this.invoke("removed", inInstance);
 	}
 };
 
@@ -104,6 +99,10 @@ publicInheritanceImpl = {
 			base = base.__proto__;
 		}
 		proto.__proto__ = base;
+	},
+	invoke: function(inMethodName, inInstance, inArgs) {
+		var fn = this.lifecycle[inMethodName];
+		return fn && fn.apply(inInstance, inArgs || []);
 	}
 };
 
@@ -114,6 +113,10 @@ protectedInheritanceImpl = {
 		return instance;
 	},
 	inheritDom: function() {
+	},
+	invoke: function(inMethodName, inInstance, inArgs) {
+		var fn = inInstance[inMethodName];
+		return fn && fn.apply(inInstance, inArgs);
 	}
 };
 
