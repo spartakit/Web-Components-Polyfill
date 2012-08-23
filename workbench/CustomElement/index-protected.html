@@ -9,7 +9,7 @@
 			};
 		</script>
 		<script src="../lang.js"></script>
-		<script src="customShadow.js"></script>
+		<script src="../ShadowDom/customShadow.js"></script>
 		<script src="HtmlElementElement.js"></script>
 		<script src="Declaration.js"></script>
 		<script src="declarationRegistry.js"></script>
@@ -40,6 +40,7 @@
 					inNode.style.backgroundColor = "orange";
 				},
 				created: function(inRoot) {
+					console.log("XFooImpl.created");
 				},
 				key: Math.random()
 			});
@@ -47,7 +48,7 @@
 			//
 			XBarImpl = Class(null, {
 				created: function(inRoot, inKey) {
-					console.log(inKey);
+					console.log("XBarImpl.created");
 				}
 			});
 			XBar = document.register("x-bar", XBarImpl, {
@@ -57,8 +58,8 @@
 			bazTemplate = document.createElement("template");
 			bazTemplate.content.innerHTML = "[BAZ]<content></content>[BAZ]";
 			XBazImpl = Class(null, {
-				created: function(inRoot, inKey) {
-					// need a way to call superclass 'created'
+				created: function(inRoot) {
+					XFooImpl.prototype.created.call(this, inRoot);
 				}
 			});
 			XBaz = document.register("x-baz", XBazImpl, {
@@ -67,8 +68,8 @@
 			});
 			//
 			XZotImpl = Class(XFooImpl, {
-				created: function(inRoot, inKey) {
-					// need a way to call superclass 'created'
+				created: function(inRoot) {
+					XFooImpl.prototype.created.call(this, inRoot);
 				}
 			});			
 			XZot = document.register("x-zot", XZotImpl);
@@ -76,22 +77,18 @@
 		<script>
 			var foo = document.createElement("x-foo");
 			foo.lightdom.innerHTML = "x-foo";
-			foo.render();
 			document.body.appendChild(foo);
 			//
 			var bar = document.createElement("x-bar");
 			bar.lightdom.innerHTML = "x-bar";
-			bar.render();
 			document.body.appendChild(bar);
 			//
 			var baz = document.createElement("x-baz");
 			baz.lightdom.innerHTML = "x-baz";
-			baz.render();
 			document.body.appendChild(baz);
 			//
 			var zot = document.createElement("x-baz");
 			baz.lightdom.innerHTML = "x-baz";
-			baz.render();
 			document.body.appendChild(baz);
 		</script>
 	</body>

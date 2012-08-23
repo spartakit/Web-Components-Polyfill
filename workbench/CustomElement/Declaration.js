@@ -115,7 +115,7 @@ protectedInheritanceImpl = {
 	inheritDom: function() {
 	},
 	invoke: function(inMethodName, inInstance, inArgs) {
-		var fn = inInstance[inMethodName];
+		var fn = this.generatedConstructor.prototype[inMethodName];
 		return fn && fn.apply(inInstance, inArgs);
 	}
 };
