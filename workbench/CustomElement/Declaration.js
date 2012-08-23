@@ -17,14 +17,16 @@ Declaration.prototype = {
 		this.finalize();
 	},
 	initialize: function() {
+		// create our HTMLElementElement instance
 		this.element = new HTMLElementElement(this.name, this.extendsName, this.setLifecycle.bind(this));
-		//
-		var ctor = this.generatedConstructor = this.generateConstructor();
+		// create our constructor (inspector sees this name in some cases)
+		var Component = this.generatedConstructor = this.generateConstructor();
 		if (this.declClass) {
-			ctor.prototype = new this.declClass();
+			Component.prototype = new this.declClass();
 		}
-		//
+		// locate ancestor declaration (if any)
 		this.ancestor = declarationRegistry.declByName(this.extendsName) || nob;
+		// discover DIV tag extended by our ultimate base class
 		this.baseTag = this.ancestor.baseTag || this.extendsName || "div";
 	},
 	generateConstructor: function() {
@@ -56,7 +58,6 @@ Declaration.prototype = {
 		var instance = inNode ? this.morph(inNode) : this.instance();
 		instance.setAttribute("is", this.name);
 		this.created(instance, this.createShadowDom(instance, this));
-		//this.render(instance);
 		return instance;
 	},
 	instance: function() {
