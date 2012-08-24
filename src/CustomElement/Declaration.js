@@ -5,8 +5,8 @@ scope.flags = scope.flags || {};
 
 var Declaration = function(inProps) {
 	// optional properties for Declaration constructor
-	var declarationProperties = ["name", "extendsName", "template", "resetStyleInheritance", "applyAuthorStyles", 
-		"lifecycle", "declClass"];
+	var declarationProperties = ["name", "extendsName", "template",
+		"resetStyleInheritance", "applyAuthorStyles", "lifecycle", "declClass"];
 	// install properties
 	declarationProperties.forEach(function(m) {
 		this[m] = inProps[m];
@@ -140,7 +140,9 @@ var protectedInheritanceImpl = {
 	},
 	invoke: function(inMethodName, inInstance, inArgs) {
 		var fn = this.generatedConstructor.prototype[inMethodName];
-		return fn && fn.apply(inInstance, inArgs);
+		// NOTE: lifecycle methods in protected mode 
+		// take 'inNode' as first argument
+		return fn && fn.apply(this, [inInstance].concat(inArgs || []));
 	}
 };
 
