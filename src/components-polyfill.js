@@ -56,6 +56,7 @@ var require = function(inSrc) {
 	"CustomElement/HtmlElementElement.js",
 	"CustomElement/Declaration.js",
 	"CustomElement/declarationRegistry.js",
+	"ComponentDocument/path.js",
 	"ComponentDocument/loader.js",
 	"ComponentDocument/parser.js",
 	"ComponentDocument/declarationFactory.js",

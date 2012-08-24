@@ -4,19 +4,19 @@ scope = scope || {};
 
 // NOTE: uses 'window' and 'document' globals
 
+scope.ready = function() {
+	scope.declarationFactory.createHostSheet();
+	scope.componentLoader.preload(document, function() {
+		scope.parser.parse(document, scope.declarationFactory.declarationFromElement);
+		scope.declarationFactory.morphAll(document);
+		scope.webComponentsReady();
+	});
+};
+
 scope.webComponentsReady = function() {
 	var e = document.createEvent('Event');
 	e.initEvent('WebComponentsReady', true, true);
 	window.document.body.dispatchEvent(e);
-};
-
-scope.ready = function() {
-	scope.declarationFactory.createHostSheet();
-	scope.componentLoader.preload(document, function() {
-		parser.parse(document, scope.declarationFactory.declarationFromElement);
-		scope.declarationFactory.morphAll(document);
-		scope.webComponentsReady();
-	});
 };
 
 scope.run = function() {

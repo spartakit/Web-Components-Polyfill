@@ -28,7 +28,7 @@ window.componentScript = function(inName, inFunc) {
 	declarationFactory.exec(inName, inFunc);
 };
 
-declarationFactory = {
+var declarationFactory = {
 	declarationFromElement: function(element) {
 		// fix scope
 		declarationFactory._declarationFromElement(element);
@@ -53,16 +53,13 @@ declarationFactory = {
 			applyAuthorStyles: a("apply-author-styles"),
 			template: this.normalizeTemplate($(element, 'template'))
 		});
-		declaration.initialize();
-		// add this declaration to the registry so we can find it by name
-		scope.declarationRegistry.add(name, declaration);
 		// optionally install the constructor on the global object
 		var ctor = a('constructor');
 		if (ctor) {
 			window[ctor] = declaration.element.generatedConstructor;
 		}
 		// fix css paths for inline style elements
-		//this.adjustTemplateCssPaths(element, declaration);
+		this.adjustTemplateCssPaths(element, declaration);
 		// load component stylesheets
 		this.sheets(element, declaration);
 		// apply @host styles.
@@ -118,7 +115,7 @@ declarationFactory = {
 			console.group("sheets");
 			forEach($$(element, "link[rel=stylesheet]"), function(s) {
 				var styles = scope.componentLoader.fetch(s);
-				//styles = scope.path.makeCssUrlsRelative(styles, scope.path.nodeUrl(s));
+				styles = scope.path.makeCssUrlsRelative(styles, scope.path.nodeUrl(s));
 				sheet.push(styles);
 			});
 			if (sheet.length) {

@@ -2,18 +2,18 @@
 
 scope = scope || {};
 
-declarationRegistry = {
+var declarationRegistry = {
 	registry: {},
+	// inOptions includes: extendsName, template, lifecycle
 	register: function(inName, inClass, inOptions) {
 		var opts = inOptions || nob;
-		// options: extendsName, template, lifecycle
-		var decl = new Declaration(inName, opts.extendsName, opts.template);
-		decl.imperatively(inClass, opts.lifecycle);
-		declarationRegistry.add(inName, decl);
-		return decl.generatedConstructor;
+		opts.name = inName;
+		opts.declClass = inClass;
+		opts.lifecycle = opts.lifecycle || nob;
+		return new Declaration(opts).generatedConstructor;
 	},
-	add: function(inName, inDeclaration) {
-		declarationRegistry.registry[inName] = inDeclaration;
+	add: function(inDeclaration) {
+		declarationRegistry.registry[inDeclaration.name] = inDeclaration;
 	},
 	declByName: function(inName) {
 		return declarationRegistry.registry[inName];
@@ -34,6 +34,7 @@ declarationRegistry = {
 scope.declarationRegistry = declarationRegistry;
 
 document.register = declarationRegistry.register;
+
 document.createElement = function(inName) {
 	return declarationRegistry.registered(inName) ? declarationRegistry.create(inName)
 		: document.__proto__.createElement.call(document, inName);

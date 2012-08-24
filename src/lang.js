@@ -1,3 +1,7 @@
+function nop() {};
+
+var nob = {};
+
 // missing DOM/JS API
 
 var forEach = function(inArrayish, inFunc, inScope) {
@@ -20,7 +24,7 @@ var $$ = function(inElement, inSelector) {
 	return nodes;
 };
 
-createDom = function(inTagOrNode, inHtml, inAttrs) {
+var createDom = function(inTagOrNode, inHtml, inAttrs) {
 	var dom = (typeof inTagOrNode == "string") ? document.createElement(inTagOrNode) : inTagOrNode.cloneNode(true);
 	dom.innerHTML = inHtml;
 	if (inAttrs) {
@@ -30,8 +34,6 @@ createDom = function(inTagOrNode, inHtml, inAttrs) {
 	}
 	return dom;
 };
-
-function nop() {};
 
 // bind shim for iOs
 

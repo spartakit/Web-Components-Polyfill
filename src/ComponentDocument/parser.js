@@ -4,7 +4,7 @@
 
 scope = scope || {};
 
-parser = {
+var parser = {
 	parsed: [],
 	parse: function(inDocument, inOnElement) {
 		this.onElement = inOnElement;

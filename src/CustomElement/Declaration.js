@@ -3,38 +3,40 @@
 scope = scope || {};
 scope.flags = scope.flags || {};
 
-var nob = {};
-
-Declaration = function(inProps) {
+var Declaration = function(inProps) {
 	// optional properties for Declaration constructor
-	var declarationProperties = ["name", "extendsName", "template", "resetStyleInheritance", "applyAuthorStyles"];
-	// initialize properties
+	var declarationProperties = ["name", "extendsName", "template", "resetStyleInheritance", "applyAuthorStyles", 
+		"lifecycle", "declClass"];
+	// install properties
 	declarationProperties.forEach(function(m) {
 		this[m] = inProps[m];
 	}, this);
-	this.lifecycle = nob;
+	// create our HTMLElementElement instance
+	this.element = new scope.HTMLElementElement(this.name, this.extendsName, this.setLifecycle.bind(this));
+	// create our constructor
+	this.generatedConstructor = this.generateConstructor();
+	// initialize prototype, if we have an implementor
+	if (this.declClass) {
+		this.generatedConstructor.prototype = new this.declClass();
+	}
+	// locate ancestor declaration (if any)
+	this.ancestor = scope.declarationRegistry.declByName(this.extendsName) || nob;
+	// discover DOM tag extended by our ultimate base class
+	this.baseTag = this.ancestor.baseTag || this.extendsName || "div";
+	// finalize if our lifecycle is defined
+	if (this.lifecycle) {
+		this.finalize();
+	}
+	// otherwise, wait for lazy finalization
+	else {
+		// avoid null-checks
+		this.lifecycle = nob;
+	}
+	// register ourselves
+	scope.declarationRegistry.add(this);
 };
 
 Declaration.prototype = {
-	imperatively: function(inClass, inLifecycle) {
-		this.declClass = inClass,
-		this.lifecycle = inLifecycle
-		this.initialize();
-		this.finalize();
-	},
-	initialize: function() {
-		// create our HTMLElementElement instance
-		this.element = new scope.HTMLElementElement(this.name, this.extendsName, this.setLifecycle.bind(this));
-		// create our constructor
-		this.generatedConstructor = this.generateConstructor();
-		if (this.declClass) {
-			this.generatedConstructor.prototype = new this.declClass();
-		}
-		// locate ancestor declaration (if any)
-		this.ancestor = declarationRegistry.declByName(this.extendsName) || nob;
-		// discover DIV tag extended by our ultimate base class
-		this.baseTag = this.ancestor.baseTag || this.extendsName || "div";
-	},
 	generateConstructor: function() {
 		var decl = this;
 		return function Component() {
@@ -47,8 +49,9 @@ Declaration.prototype = {
 			var p = this.generatedConstructor.prototype;
 			// we might have some links already
 			while (p.__proto__.__proto__) {
-				p = p.__proto;
+				p = p.__proto__;
 			}
+			// chain to our ancestor prototype
 			p.__proto__ = this.ancestor.generatedConstructor.prototype;
 		} else {
 			inheritanceImpl.inheritDom.call(this);
@@ -84,7 +87,7 @@ Declaration.prototype = {
 		return instance;
 	},
 	createShadowDom: function(inNode) {
-		return shadowImpl.createShadow(inNode, this);
+		return scope.shadowImpl.createShadow(inNode, this);
 	},
 	invoke: function(inMethodName, inInstance, inArgs) {
 		return inheritanceImpl.invoke.call(this, inMethodName, inInstance, inArgs);
@@ -105,7 +108,7 @@ Declaration.prototype = {
 
 scope.Declaration = Declaration;
 
-publicInheritanceImpl = {
+var publicInheritanceImpl = {
 	instance: function(instance) {
 		instance.__proto__ = this.generatedConstructor.prototype;
 		return instance;
@@ -125,7 +128,7 @@ publicInheritanceImpl = {
 	}
 };
 
-protectedInheritanceImpl = {
+var protectedInheritanceImpl = {
 	instance: function(instance) {
 		var p = this.generatedConstructor.prototype;
 		if (p.attach) {
@@ -141,6 +144,6 @@ protectedInheritanceImpl = {
 	}
 };
 
-inheritanceImpl = scope.flags.protect ? protectedInheritanceImpl : publicInheritanceImpl;
+var inheritanceImpl = scope.flags.protect ? protectedInheritanceImpl : publicInheritanceImpl;
 
 })(window.__exported_components_polyfill_scope__);

@@ -40,9 +40,7 @@ var loader = {
 		return "..." + path.join("/");
 	},
 	nodeUrl: function(inNode) {
-		var url = inNode.getAttribute("href") || inNode.getAttribute("src");
-		//var url = scope.path.resolveNodeUrl(inNode, nodeUrl);
-		return url;
+		return scope.path.resolveNodeUrl(inNode, scope.path.nodeUrl(inNode));
 	},
 	loadFromNode: function(inNode, inNext) {
 		var url = loader.nodeUrl(inNode);

@@ -3,16 +3,24 @@
 	<head>
 		<title></title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<!-- -->
 		<script>
+			window.__exported_components_polyfill_scope__ = window;
 			flags = {
 				protect: true
 			};
 		</script>
-		<script src="../lang.js"></script>
-		<script src="../ShadowDom/customShadow.js"></script>
-		<script src="HtmlElementElement.js"></script>
-		<script src="Declaration.js"></script>
-		<script src="declarationRegistry.js"></script>
+		<!-- -->
+		<script src="../../src/lang.js"></script>
+		<script src="../../src/ComponentDocument/path.js"></script>
+		<script src="../../src/ComponentDocument/loader.js"></script>
+		<script src="../../src/ComponentDocument/parser.js"></script>
+		<!-- -->
+		<script src="../../src/ShadowDom/customShadow.js"></script>
+		<!-- -->
+		<script src="../../src/CustomElement/HtmlElementElement.js"></script>
+		<script src="../../src/CustomElement/Declaration.js"></script>
+		<script src="../../src/CustomElement/declarationRegistry.js"></script>
 	</head>
 	<body>
 		<script>
@@ -33,7 +41,7 @@
 		</script>
 		<script>
 			XFooImpl = Class(null, {
-				bind: function(inNode) {
+				attach: function(inNode) {
 					inNode.orangate = function(){this.orangate(inNode)}.bind(this);
 				},
 				orangate: function(inNode) {
@@ -73,18 +81,22 @@
 			var foo = document.createElement("x-foo");
 			foo.lightdom.innerHTML = "x-foo";
 			document.body.appendChild(foo);
+			foo.orangate();
 			//
 			var bar = document.createElement("x-bar");
 			bar.lightdom.innerHTML = "x-bar";
 			document.body.appendChild(bar);
+			bar.orangate();
 			//
 			var baz = document.createElement("x-baz");
 			baz.lightdom.innerHTML = "x-baz";
 			document.body.appendChild(baz);
+			baz.orangate();
 			//
 			var zot = document.createElement("x-zot");
 			zot.lightdom.innerHTML = "x-zot";
 			document.body.appendChild(zot);
+			zot.orangate();
 		</script>
 	</body>
 </html>

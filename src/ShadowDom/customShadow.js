@@ -3,13 +3,15 @@
 scope = scope || {};
 
 var isTemplate = function(inNode) {
-	//return (inNode.tagName == "TEMPLATE") && (inNode.hasAttribute("instantiate") || inNode.hasAttribute("iterate"));
 	return (inNode.tagName == "TEMPLATE");
 };
 
-shadowImpl = {
+var shadowImpl = {
 	createShadow: function(inInstance, inDecl) {
 		inInstance.lightdom = inInstance.cloneNode(true);
+		// FIXME: setting model allows lightdom to react to MDV changes, 
+		// but we don't have a good way to keep these references in sync
+		// (i.e. user could change inInstance.model)
 		inInstance.lightdom.model = inInstance.model;
 		inInstance.lightdom.host = inInstance;
 		shadowImpl.installDom(inInstance, inDecl);
@@ -21,11 +23,13 @@ shadowImpl = {
 	installDom: function(inInstance, inDecl) {
 		// create a source we can extract nodes from
 		var source = inInstance.lightdom.cloneNode(true);
-		// create a mutable dom from template
-		var dom = inDecl.template && inDecl.template.content.cloneNode(true);
 		// target for installation
 		var target = inInstance;
+		// create mutable dom from template
+		var dom = inDecl.template && inDecl.template.content.cloneNode(true);
 		if (dom) {
+			// recursively calculate replacements for <shadow> nodes, if any
+			this.renderShadows(dom, inDecl);
 			// build a immutable list of template <content> elements
 			var c$ = [];
 			$$(dom, "content").forEach(function(content) {
@@ -69,8 +73,34 @@ shadowImpl = {
 			childList: true,
 			subtree: true
 		});
+	},
+	renderShadows: function(inDom, inDecl) {
+		// if this template dom has a <shadow> node
+		var shadow = $(inDom, "shadow");
+		if (shadow) {
+			// fetch the shadow dom that would be rendered
+			// by my ancestors (recusively)
+			var srcShadow = shadowImpl.fetchShadow(inDecl.ancestor);
+			if (srcShadow) {
+				shadow.parentNode.replaceChild(srcShadow, shadow);
+			}
+		}
+		return inDom;
+	},
+	fetchShadow: function(inDecl) {
+		// find ancestor template
+		var d = inDecl;
+		while (d && !d.template) {
+			d = d.ancestor;
+		}
+		if (d) {
+			// now render any ancestor shadow DOM (recurse)
+			return shadowImpl.renderShadows(d.template.content.cloneNode(true), d);
+		}
 	}
 };
+
+
 
 scope.shadowImpl = shadowImpl;
 

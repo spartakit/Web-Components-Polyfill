@@ -3,14 +3,25 @@
 	<head>
 		<title></title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<script src="../lang.js"></script>
-		<script src="../ShadowDom/customShadow.js"></script>
-		<script src="HtmlElementElement.js"></script>
-		<script src="Declaration.js"></script>
-		<script src="declarationRegistry.js"></script>
+		<!-- -->
+		<script>
+			window.__exported_components_polyfill_scope__ = window;
+		</script>
+		<!-- -->
+		<script src="../../src/lang.js"></script>
+		<script src="../../src/ComponentDocument/path.js"></script>
+		<script src="../../src/ComponentDocument/loader.js"></script>
+		<script src="../../src/ComponentDocument/parser.js"></script>
+		<!-- -->
+		<script src="../../src/ShadowDom/customShadow.js"></script>
+		<!-- -->
+		<script src="../../src/CustomElement/HtmlElementElement.js"></script>
+		<script src="../../src/CustomElement/Declaration.js"></script>
+		<script src="../../src/CustomElement/declarationRegistry.js"></script>
 	</head>
 	<body>
 		<script>
+			// strawman Class implementation
 			Class = function(inBase, inProto) {
 				var ctor = function() {};
 				if (inBase) {

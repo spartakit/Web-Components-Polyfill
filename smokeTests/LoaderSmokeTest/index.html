@@ -3,20 +3,22 @@
 	<head>
 		<title></title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<!-- -->
 		<script>
 			window.__exported_components_polyfill_scope__ = window;
 		</script>
-		<script src="../lang.js"></script>
-		<script src="loader.js"></script>
+		<!-- -->
+		<script src="../../src/lang.js"></script>
+		<script src="../../src/ComponentDocument/path.js"></script>
+		<script src="../../src/ComponentDocument/loader.js"></script>
+		<!-- -->
 		<link rel="components" href="mock/mock-components.html"/>
 	</head>
 	<body>
+		Output in console.
 		<script>
 			componentLoader.preload(document, function() {
 				console.log("finished");
-				//parser.parseDocument(document);
-				//declarationRegistry.morphAll(document);
-				//webComponentsReady();
 			});
 		</script>
 	</body>
