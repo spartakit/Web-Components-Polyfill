@@ -71,8 +71,14 @@ Declaration.prototype = {
 	create: function(inNode) {
 		var instance = inNode ? this.morph(inNode) : this.instance();
 		instance.setAttribute("is", this.name);
-		this.created(instance, this.createShadowDom(instance, this));
+		this.lifecycleCreate(instance);
 		return instance;
+	},
+	lifecycleCreate: function(instance) {
+		if (this.ancestor) {
+			this.ancestor.lifecycleCreate(instance);
+		}
+		this.created(instance, this.createShadowDom(instance, this));
 	},
 	instance: function() {
 		var instance = this.createElement();
@@ -139,10 +145,10 @@ var protectedInheritanceImpl = {
 	inheritDom: function() {
 	},
 	invoke: function(inMethodName, inInstance, inArgs) {
-		var fn = this.generatedConstructor.prototype[inMethodName];
-		// NOTE: lifecycle methods in protected mode 
-		// take 'inNode' as first argument
-		return fn && fn.apply(this, [inInstance].concat(inArgs || []));
+		var protectedImpl = this.generatedConstructor.prototype;
+		var fn = protectedImpl[inMethodName];
+		// NOTE: lifecycle methods in protected mode take 'inNode' as first argument
+		return fn && fn.apply(protectedImpl, [inInstance].concat(inArgs || []));
 	}
 };
 
