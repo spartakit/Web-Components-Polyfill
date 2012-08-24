@@ -83,25 +83,6 @@ Declaration.prototype = {
 		instance.__morphed_ = true;
 		return instance;
 	},
-	/*
-	morph: function(inNode) {
-		if (inNode.__morphed__) {
-			return inNode;
-		}
-		console.group("morphing: ", this.archetype.name);
-		// create a raw component instance
-		var instance = this.instance(inElement);
-		// render the template
-		var shadowRoot = this.renderTemplate(instance, inElement);
-		// fire lifecycle events, setup observers
-		this.finalize(instance, shadowRoot);
-		// need to do this again as the user may have 'done stuff'
-		scope.declarationRegistry.morphAll(instance);
-		console.groupEnd();
-		// return the morphed element
-		return instance;
-	},
-	*/
 	createShadowDom: function(inNode) {
 		return shadowImpl.createShadow(inNode, this);
 	},

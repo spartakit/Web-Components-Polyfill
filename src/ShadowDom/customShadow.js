@@ -3,12 +3,14 @@
 scope = scope || {};
 
 var isTemplate = function(inNode) {
-	return inNode.tagName == "TEMPLATE";
+	//return (inNode.tagName == "TEMPLATE") && (inNode.hasAttribute("instantiate") || inNode.hasAttribute("iterate"));
+	return (inNode.tagName == "TEMPLATE");
 };
 
 shadowImpl = {
 	createShadow: function(inInstance, inDecl) {
 		inInstance.lightdom = inInstance.cloneNode(true);
+		inInstance.lightdom.model = inInstance.model;
 		inInstance.lightdom.host = inInstance;
 		shadowImpl.installDom(inInstance, inDecl);
 		shadowImpl.observe(inInstance, inDecl);
@@ -38,7 +40,7 @@ shadowImpl = {
 				var slctr = content.getAttribute("select");
 				var nodes = slctr ? $$(source, slctr) : source.childNodes;
 				for (var i=0, n; (n=nodes[i]);) {
-					if (isTemplate(n)) {
+					if (isTemplate(n) || (n.parentNode != source)) {
 						i++;
 					} else {
 						frag.appendChild(n);
