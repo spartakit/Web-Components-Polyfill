@@ -13,8 +13,8 @@ scope.webComponentsReady = function() {
 scope.ready = function() {
 	scope.declarationFactory.createHostSheet();
 	scope.componentLoader.preload(document, function() {
-		scope.parser.parseDocument(document);
-		scope.declarationRegistry.morphAll(document);
+		parser.parse(document, scope.declarationFactory.declarationFromElement);
+		scope.declarationFactory.morphAll(document);
 		scope.webComponentsReady();
 	});
 };
@@ -23,8 +23,10 @@ scope.run = function() {
 	document.addEventListener('DOMContentLoaded', scope.ready);
 };
 
-if (!scope.runManually) {
+if (!scope.flags.runManually) {
 	scope.run();
 }
+
+window.__exported_components_polyfill_scope__ = null;
 
 })(window.__exported_components_polyfill_scope__);

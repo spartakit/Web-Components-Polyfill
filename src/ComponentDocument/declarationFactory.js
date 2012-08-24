@@ -9,8 +9,31 @@
 
 scope = scope || {};
 
-scope.declarationFactory = {
-	createDeclaration: function(element) {
+// debuggable script injection
+//
+// this technique allows the component scripts to be
+// viewable and debuggable in inspector scripts
+// tab (although they are all named "(program)").
+
+// invoke inScript in inContext scope
+var inject = function(inScript, inContext, inName) {
+	// inject a (debuggable!) script tag
+	var	tag = document.createElement("script");
+	tag.textContent = "componentScript('" + inName + "', function(){" + inScript + "});";
+	document.body.appendChild(tag);
+};
+
+// global necessary for script injection
+window.componentScript = function(inName, inFunc) {
+	declarationFactory.exec(inName, inFunc);
+};
+
+declarationFactory = {
+	declarationFromElement: function(element) {
+		// fix scope
+		declarationFactory._declarationFromElement(element);
+	},
+	_declarationFromElement: function(element) {
 		// sugar
 		var a = function(n) {
 			return element.getAttribute(n);
@@ -21,26 +44,25 @@ scope.declarationFactory = {
 			console.error('name attribute is required.');
 			return;
 		}
-		//
 		console.group("creating an", name, "declaration");
-		//
 		// instantiate a declaration
 		var declaration = new scope.Declaration({
 			name: name,
-			tagName: a('extends') || 'div',
+			extendsName: a('extends') || 'div',
 			resetStyleInheritance: a("reset-style-inheritance"),
 			applyAuthorStyles: a("apply-author-styles"),
 			template: this.normalizeTemplate($(element, 'template'))
 		});
-		// register the declaration so we can find it by name
-		scope.declarationRegistry.register(name, declaration);
+		declaration.initialize();
+		// add this declaration to the registry so we can find it by name
+		scope.declarationRegistry.add(name, declaration);
 		// optionally install the constructor on the global object
 		var ctor = a('constructor');
 		if (ctor) {
-			window[ctor] = declaration.archetype.generatedConstructor;
+			window[ctor] = declaration.element.generatedConstructor;
 		}
 		// fix css paths for inline style elements
-		this.adjustTemplateCssPaths(element, declaration);
+		//this.adjustTemplateCssPaths(element, declaration);
 		// load component stylesheets
 		this.sheets(element, declaration);
 		// apply @host styles.
@@ -49,11 +71,10 @@ scope.declarationFactory = {
 		this.scripts(element, declaration);
 		// expand components in our template
 		if (declaration.template) {
-			scope.declarationRegistry.morphAll(declaration.template.content);
+			//scope.declarationRegistry.morphAll(declaration.template.content);
 		}
 		// after scripts, our constructor should be ready
 		declaration.finalize();
-		//
 		console.groupEnd();
 	},
 	normalizeTemplate: function(inTemplate) {
@@ -73,7 +94,14 @@ scope.declarationFactory = {
 		});
 		// if there is any code, inject it
 		if (script.length) {
-			scope.inject(script.join(';\n'), declaration.archetype, declaration.archetype.name);
+			inject(script.join(';\n'), declaration.element, declaration.name);
+		}
+	},
+	// invoke inFunc in the context of inName's element
+	exec: function(inName, inFunc) {
+		var declaration = scope.declarationRegistry.declByName(inName);
+		if (declaration) {
+			inFunc.call(declaration.element);
 		}
 	},
 	adjustTemplateCssPaths: function(element, declaration) {
@@ -90,7 +118,7 @@ scope.declarationFactory = {
 			console.group("sheets");
 			forEach($$(element, "link[rel=stylesheet]"), function(s) {
 				var styles = scope.componentLoader.fetch(s);
-				styles = scope.path.makeCssUrlsRelative(styles, scope.path.nodeUrl(s));
+				//styles = scope.path.makeCssUrlsRelative(styles, scope.path.nodeUrl(s));
 				sheet.push(styles);
 			});
 			if (sheet.length) {
@@ -110,7 +138,7 @@ scope.declarationFactory = {
 		if (declaration.template) {
 			forEach($$(declaration.template.content, "style"), function(s) {
 				var matches, rule;
-				while(matches = this.hostRe.exec(s.innerHTML)) {
+				while ((matches = this.hostRe.exec(s.innerHTML))) {
 					rule = this.convertHostRules(matches[1], declaration) + " " + matches[2];
 					this.hostSheet.appendChild(document.createTextNode(rule));
 				}
@@ -119,7 +147,7 @@ scope.declarationFactory = {
 	},
 	// convert e.g. @host to x-foo, [is=x-foo]
 	convertHostRules: function(selectors, declaration) {
-		var o=[], parts = selectors.split(","), name = declaration.archetype.name;
+		var o=[], parts = selectors.split(","), name = declaration.name;
 		var h = "@host";
 		parts.forEach(function(p) {
 			if (p.indexOf(h) >= 0) {
@@ -140,7 +168,27 @@ scope.declarationFactory = {
 			h.appendChild(s);
 		}
 		this.hostSheet = s;
+	},
+	// FIXME: where should these live? this is 'elementFactory' not 'declarationFactory''
+	morphAll: function(inNode) {
+		scope.declarationRegistry.forEach(function(decl) {
+			this.morph(inNode, decl);
+		}, this);
+	},
+	morph: function(inNode, inDeclaration) {
+		$$(inNode, this.selector(inDeclaration)).forEach(inDeclaration.create, inDeclaration);
+	},
+	selector: function(inDeclaration) {
+		return inDeclaration.name + ',[is=' + inDeclaration.name + ']'
 	}
+};
+
+scope.declarationFactory = declarationFactory;
+
+scope.webComponentsReady = function() {
+	var e = document.createEvent('Event');
+	e.initEvent('WebComponentsReady', true, true);
+	document.body.dispatchEvent(e);
 };
 
 })(window.__exported_components_polyfill_scope__);

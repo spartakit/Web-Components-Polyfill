@@ -4,15 +4,6 @@
 
 scope = scope || {};
 
-// xhr tools
-
-var makeDocument = function(inHtml, inName) {
-	var doc = document.implementation.createHTMLDocument();
-	doc.body.innerHTML = inHtml;
-	doc.name = inName;
-	return doc;
-};
-
 var xhr = {
 	ok: function(inRequest) {
 		return (inRequest.status >= 200 && inRequest.status < 300) || (inRequest.status == 304);
@@ -29,19 +20,32 @@ var xhr = {
 	}
 };
 
+var makeDocument = function(inHtml, inName) {
+	var doc = document.implementation.createHTMLDocument();
+	doc.body.innerHTML = inHtml;
+	doc.name = inName;
+	return doc;
+};
+
+
 // caching parallel loader
 
-scope.loader = {
+var loader = {
 	// caching
 	cache: {},
 	pending: {},
-	log: function(inUrl, inMsg) {
+	display: function(inUrl) {
 		var path = inUrl.split("/");
 		path = path.slice(-2);
-		console.log("..." + path.join("/"), inMsg);
+		return "..." + path.join("/");
+	},
+	nodeUrl: function(inNode) {
+		var url = inNode.getAttribute("href") || inNode.getAttribute("src");
+		//var url = scope.path.resolveNodeUrl(inNode, nodeUrl);
+		return url;
 	},
 	loadFromNode: function(inNode, inNext) {
-		var url = scope.path.nodeUrl(inNode);
+		var url = loader.nodeUrl(inNode);
 		if (!this.cached(url, inNext)) {
 			this.request(url, inNext);
 		}
@@ -53,7 +57,7 @@ scope.loader = {
 				var p = data[inUrl] = data[inUrl] || [];
 				p.push(inNext);
 			} else {
-				scope.loader.log(inUrl, "retrieved from cache");
+				console.log(loader.display(inUrl), "cached or pending");
 				inNext(null, this.cache[inUrl], inUrl);
 			}
 			return true;
@@ -75,7 +79,7 @@ scope.loader = {
 		var p = this.pending[inUrl];
 		if (p) {
 			p.forEach(function(next) {
-				scope.loader.log(inUrl, "retrieved from cache");
+				console.log(loader.display(inUrl), "resolved via cache");
 				next(null, null, inUrl);
 			});
 			this.pending[inUrl] = null;
@@ -109,7 +113,7 @@ scope.loader = {
 		}.bind(this));
 	},
 	fetchFromCache: function(inNode) {
-		var url = scope.path.nodeUrl(inNode);
+		var url = loader.nodeUrl(inNode);
 		var data = this.docs[url] || this.cache[url];
 		if (data === undefined) {
 			console.error(url + " was not in cache");
@@ -118,33 +122,35 @@ scope.loader = {
 	}
 };
 
-// external web component resource preloader
+// web component resource loader
 
-scope.componentLoader = {
+var componentLoader = {
 	_preload: function(inNode) {
 		$$(inNode, "link[rel=components]").forEach(function(n) {
-			scope.loader.loadDocument(n, function(err, response) {
+			loader.loadDocument(n, function(err, response) {
 				if (!err) {
-					scope.componentLoader._preload(response);
+					componentLoader._preload(response);
 				}
 			});
 		});
 		if (inNode != document) {
 			$$(inNode, "link[rel=stylesheet],script[src]").forEach(function(n) {
-				scope.loader.load(n, nop);
+				loader.load(n, nop);
 			});
 		}
-		if (!scope.loader.inflight) {
-			scope.loader.oncomplete();
+		if (!loader.inflight) {
+			loader.oncomplete();
 		}
 	},
 	preload: function(inDocument, inNext) {
-		scope.loader.oncomplete = inNext;
-		scope.componentLoader._preload(inDocument);
+		loader.oncomplete = inNext;
+		componentLoader._preload(inDocument);
 	},
 	fetch: function(inNode) {
-		return scope.loader.fetchFromCache(inNode);
+		return loader.fetchFromCache(inNode);
 	}
 };
+
+scope.componentLoader = componentLoader;
 
 })(window.__exported_components_polyfill_scope__);

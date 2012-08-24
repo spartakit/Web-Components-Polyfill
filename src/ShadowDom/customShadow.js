@@ -1,3 +1,7 @@
+(function(scope) {
+
+scope = scope || {};
+
 var isTemplate = function(inNode) {
 	return inNode.tagName == "TEMPLATE";
 };
@@ -8,7 +12,7 @@ shadowImpl = {
 		inInstance.lightdom.host = inInstance;
 		shadowImpl.installDom(inInstance, inDecl);
 		shadowImpl.observe(inInstance, inDecl);
-		inInstance.render = function() { 
+		inInstance.render = function() {
 			shadowImpl.installDom(inInstance, inDecl);
 		};
 	},
@@ -56,7 +60,7 @@ shadowImpl = {
 	observe: function(inInstance, inDecl) {
 		var contentChanges = function() {
 			shadowImpl.installDom(inInstance, inDecl);
-		}.bind(this);
+		};
 		var observer = new WebKitMutationObserver(contentChanges);
 		observer.observe(inInstance.lightdom, {
 			characterData: true,
@@ -65,3 +69,7 @@ shadowImpl = {
 		});
 	}
 };
+
+scope.shadowImpl = shadowImpl;
+
+})(window.__exported_components_polyfill_scope__);

@@ -1,8 +1,6 @@
-@host { 
+@host {
 	font-family: arial;
 	font-size: large;
-	font-weight: bold;
-	xmargin-left: 96px;
 	color: blue;
 	display: block;
 }

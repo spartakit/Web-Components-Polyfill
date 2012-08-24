@@ -1,12 +1,13 @@
 (function(scope) {
-	
+
 scope = scope || {};
 
 // NOTE: use attributes on the script tag for this file as directives
 
-// noshadow=""			use custom content insertion algorithm instead of WebkitShadowDom
+// protection			element script is 'protected', isolated from the node itself
+// noshadow				use custom content insertion algorithm instead of WebkitShadowDom
 // export="[name]"		exports polyfill scope into window as 'name'
-// clonemorph=""		morph nodes via cloning superclass node
+// clonemorph			morph nodes via cloning superclass node
 
 // NOTE: uses 'window' and 'document' globals
 
@@ -28,11 +29,14 @@ var source, base = "";
 	source = source || {getAttribute: nop};
 })();
 
-var flags = {
-	noShadow: source.hasAttribute("noshadow"),
-	cloneMorph: source.hasAttribute("clonemorph"),
+var flags = scope.flags = {
+	runManually: source.hasAttribute("runManually"),
+	protect: source.hasAttribute("protection"),
+	//noShadow: source.hasAttribute("noshadow"),
+	//cloneMorph: source.hasAttribute("clonemorph"),
 	exportAs: source.getAttribute("export")
 };
+
 console.log(flags);
 
 if (flags.exportAs) {
@@ -41,25 +45,22 @@ if (flags.exportAs) {
 
 window.__exported_components_polyfill_scope__ = scope;
 
-scope.flags = flags;
 
 var require = function(inSrc) {
 	document.write('<script src="' + base + inSrc + '"></script>');
 };
+
 [
 	"lang.js",
-	"url.js",
-	"loader.js",
-	"inject.js",
-	"customShadow.js",
-	"component.js",
-	"HTMLElementElement.js",
-	"Declaration.js",
-	"declarationRegistry.js",
-	"declarationFactory.js",
-	"parser.js",
+	"ShadowDom/customShadow.js",
+	"CustomElement/HtmlElementElement.js",
+	"CustomElement/Declaration.js",
+	"CustomElement/declarationRegistry.js",
+	"ComponentDocument/loader.js",
+	"ComponentDocument/parser.js",
+	"ComponentDocument/declarationFactory.js",
+
 	"boot.js"
 ].forEach(require);
-
 
 })(window.__exported_components_polyfill_scope__);

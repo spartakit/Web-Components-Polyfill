@@ -1,11 +1,17 @@
+(function(scope) {
+
+scope = scope || {};
+scope.flags = scope.flags || {};
+
 var nob = {};
 
-flags = window.flags || {}
-
-Declaration = function(inName, inExtendsName, inTemplate) {
-	this.name = inName;
-	this.extendsName = inExtendsName;
-	this.template = inTemplate;
+Declaration = function(inProps) {
+	// optional properties for Declaration constructor
+	var declarationProperties = ["name", "extendsName", "template", "resetStyleInheritance", "applyAuthorStyles"];
+	// initialize properties
+	declarationProperties.forEach(function(m) {
+		this[m] = inProps[m];
+	}, this);
 	this.lifecycle = nob;
 };
 
@@ -18,11 +24,11 @@ Declaration.prototype = {
 	},
 	initialize: function() {
 		// create our HTMLElementElement instance
-		this.element = new HTMLElementElement(this.name, this.extendsName, this.setLifecycle.bind(this));
-		// create our constructor (inspector sees this name in some cases)
-		var Component = this.generatedConstructor = this.generateConstructor();
+		this.element = new scope.HTMLElementElement(this.name, this.extendsName, this.setLifecycle.bind(this));
+		// create our constructor
+		this.generatedConstructor = this.generateConstructor();
 		if (this.declClass) {
-			Component.prototype = new this.declClass();
+			this.generatedConstructor.prototype = new this.declClass();
 		}
 		// locate ancestor declaration (if any)
 		this.ancestor = declarationRegistry.declByName(this.extendsName) || nob;
@@ -31,16 +37,21 @@ Declaration.prototype = {
 	},
 	generateConstructor: function() {
 		var decl = this;
-		return function() {
+		return function Component() {
 			return decl.create();
 		};
 	},
 	finalize: function() {
 		if (this.ancestor !== nob) {
 			// non-dom inheritance
-			this.generatedConstructor.prototype.__proto__.__proto__ = this.ancestor.generatedConstructor.prototype;
+			var p = this.generatedConstructor.prototype;
+			// we might have some links already
+			while (p.__proto__.__proto__) {
+				p = p.__proto;
+			}
+			p.__proto__ = this.ancestor.generatedConstructor.prototype;
 		} else {
-			return inheritanceImpl.inheritDom.call(this);
+			inheritanceImpl.inheritDom.call(this);
 		}
 	},
 	createBaseElement: function() {
@@ -49,7 +60,7 @@ Declaration.prototype = {
 	createElement: function() {
 		// if "realXTags", create an <x-[name]>, losing bindings (aka replaced elements won't work)
 		// otherwise, create a <[baseTag]> with bindings intact
-		return document.__proto__.createElement.call(document, flags.realXTags ? this.name : this.baseTag);
+		return document.__proto__.createElement.call(document, scope.flags.realXTags ? this.name : this.baseTag);
 	},
 	setLifecycle: function(inLifecycle) {
 		this.lifecycle = inLifecycle;
@@ -61,11 +72,36 @@ Declaration.prototype = {
 		return instance;
 	},
 	instance: function() {
-		return inheritanceImpl.instance.call(this);
+		var instance = this.createElement();
+		return inheritanceImpl.instance.call(this, instance);
 	},
 	morph: function(inNode) {
-		return inNode;
+		if (inNode.__morphed__) {
+			return inNode;
+		}
+		var instance = inheritanceImpl.instance.call(this, inNode);
+		instance.__morphed_ = true;
+		return instance;
 	},
+	/*
+	morph: function(inNode) {
+		if (inNode.__morphed__) {
+			return inNode;
+		}
+		console.group("morphing: ", this.archetype.name);
+		// create a raw component instance
+		var instance = this.instance(inElement);
+		// render the template
+		var shadowRoot = this.renderTemplate(instance, inElement);
+		// fire lifecycle events, setup observers
+		this.finalize(instance, shadowRoot);
+		// need to do this again as the user may have 'done stuff'
+		scope.declarationRegistry.morphAll(instance);
+		console.groupEnd();
+		// return the morphed element
+		return instance;
+	},
+	*/
 	createShadowDom: function(inNode) {
 		return shadowImpl.createShadow(inNode, this);
 	},
@@ -86,9 +122,10 @@ Declaration.prototype = {
 	}
 };
 
+scope.Declaration = Declaration;
+
 publicInheritanceImpl = {
-	instance: function() {
-		var instance = this.createElement();
+	instance: function(instance) {
 		instance.__proto__ = this.generatedConstructor.prototype;
 		return instance;
 	},
@@ -96,7 +133,7 @@ publicInheritanceImpl = {
 		var proto = this.generatedConstructor.prototype.__proto__;
 		// DOM-based inheritance
 		var base = this.createBaseElement();
-		if (!flags.realXTags) {
+		if (!scope.flags.realXTags) {
 			base = base.__proto__;
 		}
 		proto.__proto__ = base;
@@ -108,9 +145,11 @@ publicInheritanceImpl = {
 };
 
 protectedInheritanceImpl = {
-	instance: function() {
-		var instance = this.createElement();
-		this.generatedConstructor.prototype.bind(instance);
+	instance: function(instance) {
+		var p = this.generatedConstructor.prototype;
+		if (p.attach) {
+			p.attach(instance);
+		}
 		return instance;
 	},
 	inheritDom: function() {
@@ -121,4 +160,6 @@ protectedInheritanceImpl = {
 	}
 };
 
-inheritanceImpl = flags.protect ? protectedInheritanceImpl : publicInheritanceImpl;
+inheritanceImpl = scope.flags.protect ? protectedInheritanceImpl : publicInheritanceImpl;
+
+})(window.__exported_components_polyfill_scope__);

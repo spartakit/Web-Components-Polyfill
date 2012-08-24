@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<script>
+			window.__exported_components_polyfill_scope__ = window;
+		</script>
+		<script src="../lang.js"></script>
+		<script src="loader.js"></script>
+		<script src="parser.js"></script>
+		<link rel="components" href="mock/mock-components.html"/>
+	</head>
+	<body>
+		<script>
+			componentLoader.preload(document, function() {
+				console.log("preload finished");
+				parser.parse(document, componentLoader, function(inElement) {
+					console.log(inElement);
+				});
+			});
+		</script>
+	</body>
+</html>

@@ -41,8 +41,7 @@
 				},
 				created: function(inRoot) {
 					console.log("XFooImpl.created");
-				},
-				key: Math.random()
+				}
 			});
 			XFoo = document.register("x-foo", XFooImpl);
 			//
@@ -67,11 +66,7 @@
 				template: bazTemplate
 			});
 			//
-			XZotImpl = Class(XFooImpl, {
-				created: function(inRoot) {
-					XFooImpl.prototype.created.call(this, inRoot);
-				}
-			});			
+			XZotImpl = Class(XFooImpl, {});
 			XZot = document.register("x-zot", XZotImpl);
 		</script>
 		<script>
@@ -87,9 +82,9 @@
 			baz.lightdom.innerHTML = "x-baz";
 			document.body.appendChild(baz);
 			//
-			var zot = document.createElement("x-baz");
-			baz.lightdom.innerHTML = "x-baz";
-			document.body.appendChild(baz);
+			var zot = document.createElement("x-zot");
+			zot.lightdom.innerHTML = "x-zot";
+			document.body.appendChild(zot);
 		</script>
 	</body>
 </html>

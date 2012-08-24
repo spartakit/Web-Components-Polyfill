@@ -1,55 +1,12 @@
 <!DOCTYPE html>
 <html>
-<head>
-	<title></title>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<script src="../../src/components-polyfill.js" noshadow clonemorph></script>
-	<link rel="components" href="manifest.html"/>
-	<style>
-		body {
-			opacity: 0;
-			-webkit-transition: opacity 0.2s ease-in;
-		}
-	</style>
-	<script>
-		window.addEventListener("WebComponentsReady", function() {
-			document.body.style.opacity = 1;
-		});
-	</script>
-</head>
-<body>
-	<div>Check Console</div>
-	
-	<hr/>
-	
-	Declarative x-foo, say hello:
-	<x-foo></x-foo>
-	
-	<hr/>
-
-	Imperative x-foo, say hello:
-	<script>
-		document.body.appendChild(document.createElement("x-foo"));
-	</script>
-	
-	<hr/>
-	
-	Declarative is="x-foo", say hello:
-	<div is="x-foo"></div>
-	
-	<hr/>
-	
-	x-image:
-	<x-image src="http://www.google.com/logos/2012/javelin-2012-hp.jpg"></x-image>
-	
-	<hr/>
-	
-	Declarative x-bar (extends x-foo), say hello:
-	<x-bar></x-bar>
-	
-	<hr/>
-	
-	Declarative x-composite
-	<x-composite></x-composite>
-</body>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<script src="../../src/components-polyfill.js" protection="true"></script>
+		<link rel="components" href="components/x-bar.html"/>
+	</head>
+	<body>
+		<x-foo>something</x-foo>
+	</body>
 </html>

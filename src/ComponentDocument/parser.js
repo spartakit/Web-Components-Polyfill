@@ -4,13 +4,23 @@
 
 scope = scope || {};
 
-scope.parser = {
+parser = {
+	parsed: [],
+	parse: function(inDocument, inOnElement) {
+		this.onElement = inOnElement;
+		this.parseDocument(inDocument);
+	},
 	parseDocument: function(inDocument) {
-		console.group(inDocument.name || inDocument.URL);
-		this.parseExternalScripts(inDocument);
-		this.parseLinkedDocuments(inDocument);
-		this.parseElements(inDocument);
-		console.groupEnd();
+		var id = inDocument.name || inDocument.URL;
+		if (this.parsed[id]) {
+			console.warn("ignoring duplicate document: ", id)
+		} else {
+			console.group(id);
+			this.parseExternalScripts(inDocument);
+			this.parseLinkedDocuments(inDocument);
+			this.parseElements(inDocument);
+			console.groupEnd();
+		}
 	},
 	parseLinkedDocuments: function(inDocument) {
 		this.parseDocuments(this.fetchDocuments($$(inDocument, 'link[rel=components]')));
@@ -19,7 +29,7 @@ scope.parser = {
 		var docs = [];
 		forEach(inLinks, function(link) {
 			docs.push(scope.componentLoader.fetch(link));
-		});
+		}, this);
 		return docs;
 	},
 	parseDocuments: function(inDocs) {
@@ -27,7 +37,7 @@ scope.parser = {
 	},
 	parseExternalScripts: function(inDocument) {
 		if (inDocument != document) {
-			$$(inDocument, 'script[src]').forEach(this.injectScriptElement);
+			$$(inDocument, 'script[src]').forEach(this.injectScriptElement, this);
 		}
 	},
 	// FIXME: only here so it can be stubbed for testing
@@ -43,8 +53,11 @@ scope.parser = {
 		}, this);
 	},
 	parseElement: function(inElement) {
-		scope.declarationFactory.createDeclaration(inElement);
+		this.onElement(inElement);
+		//scope.declarationFactory.createDeclaration(inElement);
 	}
 };
+
+scope.parser = parser;
 
 })(window.__exported_components_polyfill_scope__);
