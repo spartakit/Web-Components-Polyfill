@@ -4,13 +4,31 @@
 		<title></title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<script src="../../src/components-polyfill.js" protection="true"></script>
+		<!-- x-bar includes x-foo -->
 		<link rel="components" href="components/x-bar.html"/>
+		<link rel="components" href="components/x-mdvfoo.html"/>
+		<!-- -->
+		<style>
+			body {
+				opacity: 0;
+				-webkit-transition: opacity 0.2s;
+			}
+		</style>
 	</head>
 	<body>
-		<x-foo>something<template> boo</template></x-foo>
+		<x-foo>something</x-foo>
 		<hr/>
+		<x-mdvfoo>something</x-mdvfoo>
+		<hr/>
+		<x-foo>something<template> boo</template></x-foo>
 	</body>
 	<script>
-		document.body.model = {};
+		document.body.model = {
+			foo: "foo from MDV"
+			
+		};
+		addEventListener("WebComponentsReady", function() {
+			document.body.style.opacity = 1;
+		});
 	</script>
 </html>
