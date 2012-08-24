@@ -14,7 +14,7 @@ var Declaration = function(inProps) {
 	// create our HTMLElementElement instance
 	this.element = new scope.HTMLElementElement(this.name, this.extendsName, this.setLifecycle.bind(this));
 	// create our constructor
-	this.generatedConstructor = this.generateConstructor();
+	this.element.generatedConstructor = this.generatedConstructor = this.generateConstructor();
 	// initialize prototype, if we have an implementor
 	if (this.declClass) {
 		this.generatedConstructor.prototype = new this.declClass();
