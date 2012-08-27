@@ -794,6 +794,20 @@ scope.parser = {
 	}
 };
 
+// setup a global watch for DOM changes
+scope.watchDom = function() {
+	var observer = new WebKitMutationObserver(function(mutations) {
+		mutations.forEach(function(mxn){
+			[].forEach.call(mxn.addedNodes, function(node){
+				if (node.nodeType == 1) {
+					scope.declarationRegistry.morphAll(document);
+				}
+			});
+		});
+	});
+	observer.observe(document.body, {childList: true, subtree: true});
+};
+
 scope.webComponentsReady = function() {
 	var e = document.createEvent('Event');
 	e.initEvent('WebComponentsReady', true, true);
@@ -805,6 +819,7 @@ scope.ready = function() {
 	scope.componentLoader.preload(document, function() {
 		scope.parser.parseDocument(document);
 		scope.declarationRegistry.morphAll(document);
+		scope.watchDom();
 		scope.webComponentsReady();
 	});
 };
