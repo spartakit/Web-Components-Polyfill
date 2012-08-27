@@ -72,10 +72,11 @@ Declaration.prototype = {
 		var instance = inNode ? this.morph(inNode) : this.instance();
 		instance.setAttribute("is", this.name);
 		this.lifecycleCreate(instance);
+		instance.render();
 		return instance;
 	},
 	lifecycleCreate: function(instance) {
-		if (this.ancestor) {
+		if (this.ancestor.lifecycleCreate) {
 			this.ancestor.lifecycleCreate(instance);
 		}
 		this.created(instance, this.createShadowDom(instance, this));

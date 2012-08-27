@@ -18,11 +18,12 @@
 	<body>
 		<x-foo>something</x-foo>
 		<hr/>
+		
 		<x-bar>something</x-bar>
 		<hr/>
-		<x-mdvfoo>something</x-mdvfoo>
+<!--		<x-mdvfoo>something</x-mdvfoo>
 		<hr/>
-		<x-foo id="templatefoo">something<template> (lazy instantiated template: boo)</template></x-foo>
+		<x-foo id="templatefoo">something<template> (lazy instantiated template: boo)</template></x-foo>-->
 	</body>
 	<script>
 		document.body.model = {
@@ -31,7 +32,7 @@
 		addEventListener("WebComponentsReady", function() {
 			document.body.style.opacity = 1;
 			//
-			$("#templatefoo").lightdom.querySelector("template").setAttribute("instantiate", "");
+			//$("#templatefoo").lightdom.querySelector("template").setAttribute("instantiate", "");
 		});
 	</script>
 </html>
