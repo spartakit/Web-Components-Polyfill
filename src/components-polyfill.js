@@ -525,7 +525,8 @@ scope.webkitShadowImpl = {
 	},
 	installDom: function(instance, shadowRoot, dom) {
 		shadowRoot.appendChild(dom);
-	}
+	},
+	applyCssScoping: function() {}
 };
 
 // custom implementation of shadow-dom without the shadow; i.e. content insertion
@@ -574,6 +575,13 @@ scope.customShadowImpl = {
 		shadowRoot.innerHTML = '';
 		// the transformed dom
 		shadowRoot.appendChild(dom);
+	},
+	applyCssScoping: function(declaration) {
+		if (declaration.template) {
+			$$(declaration.template.content, "style").forEach(function(style) {
+				style.setAttribute("scoped", "");
+			});
+		}	
 	}
 };
 
@@ -659,6 +667,8 @@ scope.declarationFactory = {
 		this.applyHostStyles(declaration);
 		// evaluate components scripts
 		this.scripts(element, declaration);
+		// ensure css is properly scoped.
+		this.applyCssScoping(declaration);
 		//
 		console.groupEnd();
 	},
@@ -746,6 +756,9 @@ scope.declarationFactory = {
 			h.appendChild(s);
 		}
 		this.hostSheet = s;
+	},
+	applyCssScoping: function(declaration) {
+		scope.shadowImpl.applyCssScoping(declaration);
 	}
 };
 
