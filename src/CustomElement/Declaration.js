@@ -121,7 +121,7 @@ var publicInheritanceImpl = {
 		return instance;
 	},
 	inheritDom: function() {
-		var proto = this.generatedConstructor.prototype.__proto__;
+		var proto = this.generatedConstructor.prototype;
 		// DOM-based inheritance
 		var base = this.createBaseElement();
 		if (!scope.flags.realXTags) {

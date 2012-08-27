@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<script src="../../src/components-polyfill.js"></script>
+		<!-- x-bar includes x-foo -->
+		<link rel="components" href="components/x-bar.html"/>
+		<link rel="components" href="components/x-mdvfoo.html"/>
+		<!-- -->
+		<style>
+			body {
+				opacity: 0;
+				-webkit-transition: opacity 0.2s;
+			}
+		</style>
+	</head>
+	<body>
+		<x-foo>something</x-foo>
+		<hr/>
+		
+		<x-bar>something</x-bar>
+		<hr/>
+<!--		<x-mdvfoo>something</x-mdvfoo>
+		<hr/>
+		<x-foo id="templatefoo">something<template> (lazy instantiated template: boo)</template></x-foo>-->
+	</body>
+	<script>
+		document.body.model = {
+			foo: "foo from MDV"
+		};
+		addEventListener("WebComponentsReady", function() {
+			document.body.style.opacity = 1;
+			//
+			//$("#templatefoo").lightdom.querySelector("template").setAttribute("instantiate", "");
+		});
+	</script>
+</html>

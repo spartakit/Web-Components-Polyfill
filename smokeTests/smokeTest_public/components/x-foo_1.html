@@ -1,0 +1,13 @@
+<element name="x-foo">
+	<link rel="stylesheet" href="x-foo.css"/>
+	<template>
+		Hello from <span class="magenta">x-foo.</span>
+		You said: <b><content></content></b>.
+		<template instantiate>
+			Foo
+		</template>
+	</template>
+	<script>
+		console.log("Hello from x-foo script context.");
+	</script>
+</element>

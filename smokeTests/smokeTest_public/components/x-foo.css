@@ -1,0 +1,10 @@
+@host {
+	font-family: arial;
+	font-size: large;
+	color: blue;
+	display: block;
+}
+
+.magenta {
+	color: magenta;
+}
