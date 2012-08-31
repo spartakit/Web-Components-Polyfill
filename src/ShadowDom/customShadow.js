@@ -3,7 +3,7 @@
 scope = scope || {};
 
 var isTemplate = function(inNode) {
-	return (inNode.tagName == "TEMPLATE");
+	return inNode.tagName == "TEMPLATE";
 };
 
 var shadowImpl = {
@@ -18,7 +18,7 @@ var shadowImpl = {
 	createLightDom: function(inInstance, inDecl) {
 		// make a copy of our lightdom for the user to interact with
 		inInstance.lightdom = inInstance.cloneNode(true);
-		// FIXME: setting model allows lightdom to react to MDV changes, 
+		// FIXME: setting model allows lightdom to react to MDV changes,
 		// but we don't have a good way to keep these references in sync
 		// (i.e. user could change inInstance.model)
 		inInstance.lightdom.model = inInstance.model;
