@@ -22,13 +22,12 @@
 				template: template
 			});
 			//
-			var elt = new XElement();
-			document.body.appendChild(elt);
+			var dynElt = new XElement();
+			document.body.appendChild(dynElt);
+			dynElt.orangate();
 			//
-			elt.orangate();
-			//
-			elt = document.querySelector("[is=x-element]");
-			elt.orangate();
+			var impElt = document.querySelector("[is=x-element]");
+			impElt.orangate();
 		</script>
 	</body>
 </html>
